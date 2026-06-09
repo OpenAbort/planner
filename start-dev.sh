@@ -1,0 +1,1 @@
+cd ui && bun run desktop

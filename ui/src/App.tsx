@@ -1,49 +1,54 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import { useMemo, useState } from "react";
+import { DetailPanel } from "./components/DetailPanel";
+import { TaskPanel } from "./components/TaskPanel";
+import type { Task } from "./types/task";
 import "./App.css";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+const initialTasks: Task[] = [
+  { id: 1, title: "Review project brief", done: false },
+  { id: 2, title: "Sketch planner workflow", done: true },
+  { id: 3, title: "Prepare task data model", done: false },
+];
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+function App() {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+
+  const remainingTasks = useMemo(
+    () => tasks.filter((task) => !task.done).length,
+    [tasks],
+  );
+
+  function addTask(title: string) {
+    setTasks((currentTasks) => [
+      { id: Date.now(), title, done: false },
+      ...currentTasks,
+    ]);
+  }
+
+  function toggleTask(taskId: number) {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskId ? { ...task, done: !task.done } : task,
+      ),
+    );
+  }
+
+  function removeTask(taskId: number) {
+    setTasks((currentTasks) =>
+      currentTasks.filter((task) => task.id !== taskId),
+    );
   }
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
+    <main className="app-shell">
+      <TaskPanel
+        tasks={tasks}
+        remainingTasks={remainingTasks}
+        onAddTask={addTask}
+        onToggleTask={toggleTask}
+        onRemoveTask={removeTask}
+      />
+      <DetailPanel />
     </main>
   );
 }
