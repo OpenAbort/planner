@@ -69,10 +69,47 @@ button {
 }
 
 .app-shell {
-  display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  height: 100vh;
   min-height: 100vh;
   background: #f4f7fb;
+}
+
+.panel-resize-handle {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 6px;
+  border-right: 1px solid #dbe3ef;
+  border-left: 1px solid #dbe3ef;
+  background: #f8fafc;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.panel-resize-handle::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 48px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.panel-resize-handle:hover,
+.panel-resize-handle:focus-visible,
+.panel-resize-handle[data-separator="active"],
+.panel-resize-handle[data-separator="focus"] {
+  background: #eef4fb;
+  outline: none;
+}
+
+.panel-resize-handle:hover::after,
+.panel-resize-handle:focus-visible::after,
+.panel-resize-handle[data-separator="active"]::after,
+.panel-resize-handle[data-separator="focus"]::after {
+  background: #2563eb;
 }
 
 .task-panel {
@@ -80,7 +117,6 @@ button {
   min-height: 100vh;
   flex-direction: column;
   gap: 18px;
-  border-right: 1px solid #dbe3ef;
   background: #ffffff;
   padding: 24px;
 }
@@ -132,7 +168,18 @@ h1 {
 
 @media (max-width: 720px) {
   .app-shell {
+    display: grid !important;
     grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .panel-resize-handle {
+    display: none;
+  }
+
+  .app-shell > [data-panel] {
+    flex: none !important;
+    width: 100% !important;
   }
 
   .task-panel {

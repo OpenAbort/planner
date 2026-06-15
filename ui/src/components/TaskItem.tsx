@@ -29,7 +29,7 @@ export function TaskItem({
       />
       <span
         className={cn(
-          "min-w-0 [overflow-wrap:anywhere] text-left leading-[1.3]",
+          "relative min-w-0 overflow-hidden whitespace-nowrap text-left leading-[1.3] after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-6 after:bg-gradient-to-r after:from-transparent after:to-white after:content-['']",
           task.done && "text-slate-400 line-through"
         )}
       >

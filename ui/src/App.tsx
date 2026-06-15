@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { DetailPanel } from "./components/DetailPanel";
 import { TaskPanel } from "./components/TaskPanel";
 import type { Task } from "./types/task";
@@ -47,16 +48,21 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <TaskPanel
-        tasks={tasks}
-        remainingTasks={remainingTasks}
-        onAddTask={addTask}
-        onToggleTask={toggleTask}
-        onRemoveTask={removeTask}
-      />
-      <DetailPanel />
-    </main>
+    <Group className="app-shell" orientation="horizontal" role="main">
+      <Panel defaultSize="360px" minSize="280px" maxSize="520px">
+        <TaskPanel
+          tasks={tasks}
+          remainingTasks={remainingTasks}
+          onAddTask={addTask}
+          onToggleTask={toggleTask}
+          onRemoveTask={removeTask}
+        />
+      </Panel>
+      <Separator className="panel-resize-handle" aria-label="Resize task panel" />
+      <Panel minSize="360px">
+        <DetailPanel />
+      </Panel>
+    </Group>
   );
 }
 
