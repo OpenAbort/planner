@@ -8,6 +8,13 @@ const initialTasks: Task[] = [
   { id: 1, title: "Review project brief", done: false },
   { id: 2, title: "Sketch planner workflow", done: true },
   { id: 3, title: "Prepare task data model", done: false },
+  { id: 4, title: "Prepare task data model", done: false },
+  { id: 5, title: "Prepare task data model", done: false },
+  { id: 6, title: "Prepare task data model", done: false },
+  { id: 7, title: "Prepare task data model", done: false },
+  { id: 8, title: "Prepare task data model", done: false },
+  { id: 9, title: "Prepare task data model", done: false },
+  { id: 10, title: "Prepare task data model", done: false },
 ];
 
 function App() {
