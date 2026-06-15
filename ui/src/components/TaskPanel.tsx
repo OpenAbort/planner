@@ -18,7 +18,7 @@ export function TaskPanel({
   onRemoveTask,
 }: TaskPanelProps) {
   return (
-    <aside className="task-panel" aria-label="Task list">
+    <aside className="task-panel h-screen overflow-hidden" aria-label="Task list">
       <header className="panel-header">
         <div>
           <p className="eyebrow">Planner</p>
