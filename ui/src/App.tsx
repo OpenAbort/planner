@@ -1,21 +1,22 @@
 import { useMemo, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { DetailPanel } from "./components/DetailPanel";
-import { TaskPanel } from "./components/TaskPanel";
-import type { Task } from "./types/task";
+import { TaskPanel } from "./components/leftPanel/TaskPanel.tsx";
+import type { Task, TaskStatus } from "./types/task";
 import "./App.css";
+import {invoke} from "@tauri-apps/api/core";
 
 const initialTasks: Task[] = [
-  { id: 1, title: "Review project brief", done: false },
-  { id: 2, title: "Sketch planner workflow", done: true },
-  { id: 3, title: "Prepare task data model", done: false },
-  { id: 4, title: "Prepare task data model", done: false },
-  { id: 5, title: "Prepare task data model", done: false },
-  { id: 6, title: "Prepare task data model", done: false },
-  { id: 7, title: "Prepare task data model", done: false },
-  { id: 8, title: "Prepare task data model", done: false },
-  { id: 9, title: "Prepare task data model", done: false },
-  { id: 10, title: "Prepare task data model", done: false },
+  { id: 1, title: "Review project brief", done: false, status: "OPEN" },
+  { id: 2, title: "Sketch planner workflow", done: true, status: "IMPLEMENTED" },
+  { id: 3, title: "Prepare task data model", done: false, status: "IN PROGRESS" },
+  { id: 4, title: "Prepare task data model", done: false, status: "OPEN" },
+  { id: 5, title: "Prepare task data model", done: false, status: "OPEN" },
+  { id: 6, title: "Prepare task data model", done: false, status: "OPEN" },
+  { id: 7, title: "Prepare task data model", done: false, status: "OPEN" },
+  { id: 8, title: "Prepare task data model", done: false, status: "OPEN" },
+  { id: 9, title: "Prepare task data model", done: false, status: "OPEN" },
+  { id: 10, title: "Prepare task data model", done: false, status: "CLOSE" },
 ];
 
 function App() {
@@ -26,25 +27,42 @@ function App() {
     [tasks],
   );
 
-  function addTask(title: string) {
+  async function addTask(title: string, status: TaskStatus) {
     setTasks((currentTasks) => [
-      { id: Date.now(), title, done: false },
+      { id: Date.now(), title, done: status === "IMPLEMENTED" || status === "CLOSE", status },
       ...currentTasks,
     ]);
+
+      const result = await invoke("add_todo", {
+          title,
+      });
+
+      console.log(result);
   }
 
-  function toggleTask(taskId: number) {
+  function removeTasks(taskIds: number[]) {
+    const taskIdSet = new Set(taskIds);
+
     setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === taskId ? { ...task, done: !task.done } : task,
-      ),
+      currentTasks.filter((task) => !taskIdSet.has(task.id)),
     );
   }
 
-  function removeTask(taskId: number) {
-    setTasks((currentTasks) =>
-      currentTasks.filter((task) => task.id !== taskId),
-    );
+  function reorderTask(sourceTaskId: number, targetTaskId: number) {
+    setTasks((currentTasks) => {
+      const sourceIndex = currentTasks.findIndex((task) => task.id === sourceTaskId);
+      const targetIndex = currentTasks.findIndex((task) => task.id === targetTaskId);
+
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+        return currentTasks;
+      }
+
+      const nextTasks = [...currentTasks];
+      const [movedTask] = nextTasks.splice(sourceIndex, 1);
+      nextTasks.splice(targetIndex, 0, movedTask);
+
+      return nextTasks;
+    });
   }
 
   return (
@@ -54,8 +72,8 @@ function App() {
           tasks={tasks}
           remainingTasks={remainingTasks}
           onAddTask={addTask}
-          onToggleTask={toggleTask}
-          onRemoveTask={removeTask}
+          onRemoveTasks={removeTasks}
+          onReorderTask={reorderTask}
         />
       </Panel>
       <Separator className="panel-resize-handle" aria-label="Resize task panel" />
