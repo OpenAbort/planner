@@ -47,7 +47,9 @@ export function TaskItem({
         isDragging && "z-10 opacity-70 shadow-lg"
       )}
       style={{
-        transform: CSS.Transform.toString(transform),
+        transform: CSS.Transform.toString(
+          transform ? { ...transform, x: 0 } : transform
+        ),
         transition,
       }}
     >

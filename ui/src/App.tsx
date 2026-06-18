@@ -67,7 +67,7 @@ function App() {
 
   return (
     <Group className="app-shell" orientation="horizontal" role="main">
-      <Panel defaultSize="360px" minSize="280px" maxSize="520px">
+      <Panel defaultSize="360px" minSize="420px" maxSize="520px">
         <TaskPanel
           tasks={tasks}
           remainingTasks={remainingTasks}

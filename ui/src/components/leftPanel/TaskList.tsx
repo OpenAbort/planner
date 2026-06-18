@@ -64,8 +64,8 @@ export function TaskList({
         strategy={verticalListSortingStrategy}
       >
         <section
-          className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pr-0.5 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]
-          [&::-webkit-scrollbar]:w-[1px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-track]:bg-transparent"
+          className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto [scrollbar-color:#e2e8f0_transparent] [scrollbar-width:thin]
+          [&::-webkit-scrollbar]:w-px [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-track]:bg-transparent"
           aria-label="All tasks"
         >
           {tasks.map((task) => (
