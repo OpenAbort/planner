@@ -1,5 +1,5 @@
 use super::queryable::QueryableSet;
-use super::entity::Entity;
+use super::entity::{Entity, StoredEntity};
 use std::marker::PhantomData;
 
 pub struct EntitySet<T, Key> {
@@ -17,6 +17,24 @@ impl<T, Key> EntitySet<T, Key> {
 
     pub fn add(&mut self, entity: T) {
         self.data.push(entity);
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.data.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.data.iter_mut()
+    }
+
+    pub fn remove_by_id(&mut self, key: &Key) -> bool
+    where
+        T: Entity<Key>,
+        Key: PartialEq,
+    {
+        let initial_len = self.data.len();
+        self.data.retain(|entity| entity.get_id() != key);
+        self.data.len() != initial_len
     }
 }
 
@@ -47,3 +65,5 @@ where
         self.data.retain(|entity| entity.get_id() != &key);
     }
 }
+
+pub type ThreadSharedEntitySet = EntitySet<Box<dyn StoredEntity>, String>;
