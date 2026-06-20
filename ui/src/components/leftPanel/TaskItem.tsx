@@ -12,8 +12,8 @@ type TaskItemProps = {
   task: Task;
   isSelecting: boolean;
   isSelected: boolean;
-  onRequestDeleteTask: (taskId: number) => void;
-  onToggleTaskSelection: (taskId: number) => void;
+  onRequestDeleteTask: (taskId: string) => void;
+  onToggleTaskSelection: (taskId: string) => void;
 };
 
 export function TaskItem({
@@ -74,7 +74,7 @@ export function TaskItem({
       <span
         className={cn(
           "relative min-w-0 overflow-hidden whitespace-nowrap text-left leading-[1.3] after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-6 after:bg-gradient-to-r after:from-transparent after:to-white after:content-['']",
-          task.done && "text-slate-400 line-through"
+          task.status === "CLOSE" && "text-slate-400 line-through"
         )}
       >
         {task.title}

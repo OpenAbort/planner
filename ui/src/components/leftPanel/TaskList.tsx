@@ -18,10 +18,10 @@ import type { Task } from "../../types/task.ts";
 type TaskListProps = {
   tasks: Task[];
   isSelecting: boolean;
-  selectedTaskIds: Set<number>;
-  onRequestDeleteTask: (taskId: number) => void;
-  onReorderTask: (sourceTaskId: number, targetTaskId: number) => void;
-  onToggleTaskSelection: (taskId: number) => void;
+  selectedTaskIds: Set<string>;
+  onRequestDeleteTask: (taskId: string) => void;
+  onReorderTask: (sourceTaskId: string, targetTaskId: string) => void;
+  onToggleTaskSelection: (taskId: string) => void;
 };
 
 export function TaskList({
@@ -50,7 +50,7 @@ export function TaskList({
       return;
     }
 
-    onReorderTask(Number(active.id), Number(over.id));
+    onReorderTask(String(active.id), String(over.id));
   }
 
   return (

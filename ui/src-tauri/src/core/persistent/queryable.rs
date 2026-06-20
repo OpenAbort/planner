@@ -1,3 +1,4 @@
+#[warn(unused)]
 pub trait QueryableSet<T, Key> {
     fn find_by_id(&self, key: Key) -> Option<&T>;
     fn insert(&mut self, entity: T);

@@ -11,7 +11,7 @@ impl InMemDatabase {
         Self { db: HashMap::new() }
     }
 
-    pub fn add<T: StoredEntity + 'static>(&mut self, collection: impl Into<String>, entity: T) {
+    pub fn add<T: StoredEntity>(&mut self, collection: impl Into<String>, entity: T) {
         self.db
             .entry(collection.into())
             .or_insert_with(EntitySet::new)
@@ -28,11 +28,13 @@ impl InMemDatabase {
         })
     }
 
-    pub fn list<T: 'static>(&self, collection: &str) -> Vec<&T> {
+    pub fn list<T: 'static>(&self, collection: &str, limit: usize, offset: usize) -> Vec<&T> {
         self.db
             .get(collection)
             .map(|set| {
                 set.iter()
+                    .skip(offset)
+                    .take(limit)
                     .filter_map(|entity| entity.as_any().downcast_ref::<T>())
                     .collect()
             })

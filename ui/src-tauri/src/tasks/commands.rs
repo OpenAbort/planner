@@ -34,11 +34,14 @@ pub fn get_task(
 }
 
 #[tauri::command]
-pub fn list_tasks(container: State<ApplicationContainer>) -> Result<Vec<Task>, String> {
+pub fn list_tasks(
+    limit: usize,
+    offset: usize,
+    container: State<ApplicationContainer>) -> Result<Vec<Task>, String> {
     let db = container.database();
 
     Ok(db
-        .list::<Task>(TASKS_COLLECTION)
+        .list::<Task>(TASKS_COLLECTION, limit, offset)
         .into_iter()
         .cloned()
         .collect())

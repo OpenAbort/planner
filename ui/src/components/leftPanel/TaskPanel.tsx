@@ -1,18 +1,19 @@
-import { useMemo, useState } from "react";
+import {useMemo, useState} from "react";
 import {Button} from "@/components/ui/button.tsx";
 import {TaskForm} from "./TaskForm.tsx";
 import {TaskList} from "./TaskList.tsx";
 import {DeleteConfirmDialog} from "../common/dialogs/DeleteConfirmDialog.tsx";
-import { TaskSelectionToolbar } from "./TaskSelectionToolbar.tsx";
+import {TaskSelectionToolbar} from "./TaskSelectionToolbar.tsx";
 import type {Task, TaskStatus} from "../../types/task.ts";
 import {useLeftPanelState} from "@/src/components/leftPanel/states/leftPanelStates.ts";
+import {Separator} from "@/components/ui/separator.tsx";
 
 type TaskPanelProps = {
     tasks: Task[];
     remainingTasks: number;
     onAddTask: (title: string, status: TaskStatus) => void;
-    onRemoveTasks: (taskIds: number[]) => void;
-    onReorderTask: (sourceTaskId: number, targetTaskId: number) => void;
+    onRemoveTasks: (taskIds: string[]) => void;
+    onReorderTask: (sourceTaskId: string, targetTaskId: string) => void;
 };
 
 export function TaskPanel({
@@ -23,10 +24,10 @@ export function TaskPanel({
                               onReorderTask,
                           }: TaskPanelProps) {
     const state = useLeftPanelState();
-    const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(
+    const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
         () => new Set()
     );
-    const [deleteTaskIds, setDeleteTaskIds] = useState<number[] | null>(null);
+    const [deleteTaskIds, setDeleteTaskIds] = useState<string[] | null>(null);
 
     const selectedCount = selectedTaskIds.size;
     const deleteCount = deleteTaskIds?.length ?? 0;
@@ -36,7 +37,7 @@ export function TaskPanel({
         [selectedCount]
     );
 
-    function toggleTaskSelection(taskId: number) {
+    function toggleTaskSelection(taskId: string) {
         setSelectedTaskIds((currentTaskIds) => {
             const nextTaskIds = new Set(currentTaskIds);
 
@@ -65,7 +66,7 @@ export function TaskPanel({
         }
 
         onRemoveTasks(deleteTaskIds);
-        setSelectedTaskIds((currentTaskIds: any) => {
+        setSelectedTaskIds((currentTaskIds) => {
             const deletedTaskIds = new Set(deleteTaskIds);
             return new Set(
                 [...currentTaskIds].filter((taskId) => !deletedTaskIds.has(taskId))
@@ -84,17 +85,19 @@ export function TaskPanel({
                 <span className="task-count">{remainingTasks} open</span>
             </header>
 
-            <TaskForm onAddTask={onAddTask}/>
-            {!state.isTaskItemSelecting && (
-                <Button
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50"
-                    type="button"
-                    variant="ghost"
-                    onClick={() => state.toggle(true)}
-                >
-                    Select
-                </Button>
-            )}
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+                <TaskForm onAddTask={onAddTask}/>
+                {!state.isTaskItemSelecting && (
+                    <Button
+                        className="h-9 rounded-lg border border-slate-200 bg-white px-4 font-semibold text-slate-700 hover:bg-slate-50"
+                        type="button"
+                        variant="ghost"
+                        onClick={() => state.toggle(true)}
+                    >
+                        Select
+                    </Button>
+                )}
+            </div>
             {state.isTaskItemSelecting && (
                 <TaskSelectionToolbar
                     selectedCount={selectedCount}
@@ -103,6 +106,7 @@ export function TaskPanel({
                     onDelete={() => setDeleteTaskIds([...selectedTaskIds])}
                 />
             )}
+            <Separator/>
             <TaskList
                 tasks={tasks}
                 isSelecting={state.isTaskItemSelecting}
