@@ -22,6 +22,12 @@ impl Task {
     pub fn set_status(&mut self, status: String) {
         self.status = status;
     }
+
+    pub fn update_details(&mut self, title: String, description: String, status: String) {
+        self.title = title;
+        self.description = description;
+        self.status = status;
+    }
 }
 
 impl Entity<String> for Task {

@@ -4,7 +4,7 @@ mod core;
 mod tasks;
 
 use app::ApplicationContainer;
-use tasks::commands::{add_task, delete_task, get_task, list_tasks, update_task_status};
+use tasks::commands::{add_task, delete_task, get_task, list_tasks, update_task, update_task_status};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -15,6 +15,7 @@ pub fn run() {
             add_task,
             get_task,
             list_tasks,
+            update_task,
             update_task_status,
             delete_task
         ])

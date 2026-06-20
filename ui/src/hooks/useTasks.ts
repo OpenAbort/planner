@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from "react";
 import {invoke} from "@tauri-apps/api/core";
-import {Task} from "@/src/types/task.ts";
+import {Task, TaskStatus} from "@/src/types/task.ts";
 
 type UseTasksParams = {
     limit: number;
@@ -10,7 +10,14 @@ type UseTasksParams = {
 type AddTaskParams = {
     title: string;
     description: string;
-    status: string;
+    status: TaskStatus;
+};
+
+type UpdateTaskParams = {
+    id: string;
+    title: string;
+    description: string;
+    status: TaskStatus;
 };
 
 export default function useTasks({limit, offset}: UseTasksParams) {
@@ -68,6 +75,25 @@ export default function useTasks({limit, offset}: UseTasksParams) {
         return updatedTask;
     }, []);
 
+    const updateTask = useCallback(async ({id, title, description, status}: UpdateTaskParams) => {
+        const updatedTask = await invoke<Task | null>("update_task", {
+            id,
+            title,
+            description,
+            status,
+        });
+
+        if (updatedTask) {
+            setTasks((prev) =>
+                prev.map((task) =>
+                    task.id === id ? updatedTask : task
+                )
+            );
+        }
+
+        return updatedTask;
+    }, []);
+
     const deleteTask = useCallback(async (id: string) => {
         const deleted = await invoke<boolean>("delete_task", {
             id,
@@ -90,6 +116,7 @@ export default function useTasks({limit, offset}: UseTasksParams) {
         error,
         loadTasks,
         addTask,
+        updateTask,
         updateTaskStatus,
         deleteTask,
     };

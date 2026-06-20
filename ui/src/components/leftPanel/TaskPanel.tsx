@@ -7,6 +7,7 @@ import {TaskSelectionToolbar} from "./TaskSelectionToolbar.tsx";
 import type {Task, TaskStatus} from "../../types/task.ts";
 import {useLeftPanelState} from "@/src/components/leftPanel/states/leftPanelStates.ts";
 import {Separator} from "@/components/ui/separator.tsx";
+import {useTaskSelectionState} from "@/src/states/taskSelectionState.ts";
 
 type TaskPanelProps = {
     tasks: Task[];
@@ -24,6 +25,7 @@ export function TaskPanel({
                               onReorderTask,
                           }: TaskPanelProps) {
     const state = useLeftPanelState();
+    const selectTask = useTaskSelectionState((selectionState) => selectionState.selectTask);
     const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
         () => new Set()
     );
@@ -113,6 +115,7 @@ export function TaskPanel({
                 selectedTaskIds={selectedTaskIds}
                 onRequestDeleteTask={(taskId) => setDeleteTaskIds([taskId])}
                 onReorderTask={onReorderTask}
+                onSelectTask={selectTask}
                 onToggleTaskSelection={toggleTaskSelection}
             />
             {deleteTaskIds && (

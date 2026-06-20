@@ -1,18 +1,27 @@
 import {useEffect, useMemo, useState} from "react";
 import {Group, Panel, Separator} from "react-resizable-panels";
-import {DetailPanel} from "./components/DetailPanel";
+import {RightPanel} from "./components/rightPanel/RightPanel.tsx";
 import {TaskPanel} from "./components/leftPanel/TaskPanel.tsx";
 import type {Task, TaskStatus} from "./types/task";
 import "./App.css";
 import useTasks from "@/src/hooks/useTasks.ts";
+import {useTaskSelectionState} from "@/src/states/taskSelectionState.ts";
 
 function App() {
-    const {tasks, addTask: at, deleteTask} = useTasks({limit: 50, offset: 0});
+    const {tasks, addTask: at, deleteTask, updateTask} = useTasks({limit: 50, offset: 0});
     const [onUITasks, setOnUITasks] = useState<Task[]>([]);
+    const selectedTaskId = useTaskSelectionState((state) => state.selectedTaskId);
+    const clearSelectedTask = useTaskSelectionState((state) => state.clearSelectedTask);
 
     useEffect(() => {
         setOnUITasks(tasks);
     }, [tasks]);
+
+    useEffect(() => {
+        if (selectedTaskId && !tasks.some((task) => task.id === selectedTaskId)) {
+            clearSelectedTask();
+        }
+    }, [clearSelectedTask, selectedTaskId, tasks]);
 
     const remainingTasks = useMemo(
         () => onUITasks.filter((task) => task.status === "OPEN").length,
@@ -57,7 +66,7 @@ function App() {
             </Panel>
             <Separator className="panel-resize-handle" aria-label="Resize task panel"/>
             <Panel minSize="360px">
-                <DetailPanel/>
+                <RightPanel tasks={onUITasks} onUpdateTask={updateTask}/>
             </Panel>
         </Group>
     );

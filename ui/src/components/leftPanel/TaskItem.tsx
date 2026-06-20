@@ -13,6 +13,7 @@ type TaskItemProps = {
   isSelecting: boolean;
   isSelected: boolean;
   onRequestDeleteTask: (taskId: string) => void;
+  onSelectTask: (taskId: string) => void;
   onToggleTaskSelection: (taskId: string) => void;
 };
 
@@ -21,6 +22,7 @@ export function TaskItem({
   isSelecting,
   isSelected,
   onRequestDeleteTask,
+  onSelectTask,
   onToggleTaskSelection,
 }: TaskItemProps) {
   const statusOption = getTaskStatusOption(task.status);
@@ -52,12 +54,20 @@ export function TaskItem({
         ),
         transition,
       }}
+      onClick={() => {
+        if (isSelecting) {
+          return;
+        }
+
+        onSelectTask(task.id);
+      }}
     >
       <button
         className="grid size-5 cursor-grab place-items-center rounded-md text-slate-300 hover:bg-slate-100 hover:text-slate-500 active:cursor-grabbing"
         type="button"
         aria-label={`Drag ${task.title}`}
         ref={setActivatorNodeRef}
+        onClick={(event) => event.stopPropagation()}
         {...attributes}
         {...listeners}
       >
@@ -68,7 +78,10 @@ export function TaskItem({
           className="size-[22px] rounded-[8px] border-slate-300 bg-white text-white data-checked:border-primary data-checked:bg-primary"
           aria-label={`Select ${task.title}`}
           checked={isSelected}
-          onClick={() => onToggleTaskSelection(task.id)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleTaskSelection(task.id);
+          }}
         />
       )}
       <span
@@ -92,7 +105,10 @@ export function TaskItem({
       <Button
         className="size-[26px] rounded-[10px] border-0 bg-transparent p-0 text-[22px] text-slate-400 hover:bg-red-100 hover:text-red-600"
         aria-label={`Delete ${task.title}`}
-        onClick={() => onRequestDeleteTask(task.id)}
+        onClick={(event) => {
+          event.stopPropagation();
+          onRequestDeleteTask(task.id);
+        }}
         size={'icon'}
         variant="ghost"
       >

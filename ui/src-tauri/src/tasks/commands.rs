@@ -66,6 +66,30 @@ pub fn update_task_status(
 }
 
 #[tauri::command]
+pub fn update_task(
+    id: String,
+    title: String,
+    description: String,
+    status: String,
+    container: State<ApplicationContainer>,
+) -> Result<Option<Task>, String> {
+    if title.trim().is_empty() {
+        return Err("Title cannot be empty".to_string());
+    }
+
+    let mut db = container.database();
+    let Some(existing_task) = db.find::<Task>(TASKS_COLLECTION, &id).cloned() else {
+        return Ok(None);
+    };
+
+    let mut updated_task = existing_task;
+    updated_task.update_details(title, description, status);
+    db.update(TASKS_COLLECTION, updated_task.clone());
+
+    Ok(Some(updated_task))
+}
+
+#[tauri::command]
 pub fn delete_task(id: String, container: State<ApplicationContainer>) -> Result<bool, String> {
     let mut db = container.database();
 

@@ -21,6 +21,7 @@ type TaskListProps = {
   selectedTaskIds: Set<string>;
   onRequestDeleteTask: (taskId: string) => void;
   onReorderTask: (sourceTaskId: string, targetTaskId: string) => void;
+  onSelectTask: (taskId: string) => void;
   onToggleTaskSelection: (taskId: string) => void;
 };
 
@@ -30,6 +31,7 @@ export function TaskList({
   selectedTaskIds,
   onRequestDeleteTask,
   onReorderTask,
+  onSelectTask,
   onToggleTaskSelection,
 }: TaskListProps) {
   const sensors = useSensors(
@@ -75,6 +77,7 @@ export function TaskList({
               isSelecting={isSelecting}
               isSelected={selectedTaskIds.has(task.id)}
               onRequestDeleteTask={onRequestDeleteTask}
+              onSelectTask={onSelectTask}
               onToggleTaskSelection={onToggleTaskSelection}
             />
           ))}
