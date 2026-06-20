@@ -2,8 +2,7 @@ use tauri::State;
 use crate::app::ApplicationContainer;
 use crate::tasks::model::Task;
 use nanoid::nanoid;
-
-const TASKS_COLLECTION: &str = "tasks";
+use crate::common::constants::TASKS_COLLECTION;
 
 #[tauri::command]
 pub fn add_task(

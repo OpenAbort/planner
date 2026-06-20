@@ -1,6 +1,7 @@
 mod core;
 mod tasks;
 mod app;
+mod common;
 
 use app::ApplicationContainer;
 use tasks::commands::{add_task, delete_task, get_task, list_tasks, update_task_status};
