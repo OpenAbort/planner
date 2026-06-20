@@ -19,8 +19,8 @@ function App() {
         [onUITasks],
     );
 
-    async function addTask(title: string, status: TaskStatus) {
-        await at({title, description: "", status});
+    async function addTask(title: string, description: string, status: TaskStatus) {
+        await at({title, description, status});
     }
 
     async function removeTasks(taskIds: string[]) {

@@ -5,12 +5,13 @@ import type { TaskStatus } from "../../types/task.ts";
 import { AddTaskDialog } from "../common/dialogs/AddTaskDialog.tsx";
 
 type TaskFormProps = {
-  onAddTask: (title: string, status: TaskStatus) => void;
+  onAddTask: (title: string, description: string, status: TaskStatus) => void;
 };
 
 export function TaskForm({ onAddTask }: TaskFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
+  const [taskDescription, setTaskDescription] = useState("");
   const [taskStatus, setTaskStatus] = useState<TaskStatus>("OPEN");
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
@@ -21,8 +22,9 @@ export function TaskForm({ onAddTask }: TaskFormProps) {
       return;
     }
 
-    onAddTask(title, taskStatus);
+    onAddTask(title, taskDescription.trim(), taskStatus);
     setTaskTitle("");
+    setTaskDescription("");
     setTaskStatus("OPEN");
     setIsOpen(false);
   }
@@ -30,6 +32,7 @@ export function TaskForm({ onAddTask }: TaskFormProps) {
   function handleClose() {
     setIsOpen(false);
     setTaskTitle("");
+    setTaskDescription("");
     setTaskStatus("OPEN");
   }
 
@@ -47,9 +50,11 @@ export function TaskForm({ onAddTask }: TaskFormProps) {
       {isOpen && (
         <AddTaskDialog
           taskTitle={taskTitle}
+          taskDescription={taskDescription}
           taskStatus={taskStatus}
           onClose={handleClose}
           onSubmit={handleSubmit}
+          onTaskDescriptionChange={setTaskDescription}
           onTaskStatusChange={setTaskStatus}
           onTaskTitleChange={setTaskTitle}
         />

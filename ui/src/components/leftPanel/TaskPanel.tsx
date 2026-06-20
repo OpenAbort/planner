@@ -11,7 +11,7 @@ import {Separator} from "@/components/ui/separator.tsx";
 type TaskPanelProps = {
     tasks: Task[];
     remainingTasks: number;
-    onAddTask: (title: string, status: TaskStatus) => void;
+    onAddTask: (title: string, description: string, status: TaskStatus) => void;
     onRemoveTasks: (taskIds: string[]) => void;
     onReorderTask: (sourceTaskId: string, targetTaskId: string) => void;
 };
