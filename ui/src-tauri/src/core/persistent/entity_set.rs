@@ -1,5 +1,5 @@
-use super::queryable::QueryableSet;
 use super::entity::{Entity, StoredEntity};
+use super::queryable::QueryableSet;
 use std::marker::PhantomData;
 
 pub struct EntitySet<T, Key> {

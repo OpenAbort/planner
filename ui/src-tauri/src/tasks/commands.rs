@@ -1,8 +1,8 @@
-use tauri::State;
 use crate::app::ApplicationContainer;
+use crate::common::constants::TASKS_COLLECTION;
 use crate::tasks::model::Task;
 use nanoid::nanoid;
-use crate::common::constants::TASKS_COLLECTION;
+use tauri::State;
 
 #[tauri::command]
 pub fn add_task(
@@ -24,7 +24,10 @@ pub fn add_task(
 }
 
 #[tauri::command]
-pub fn get_task(id: String, container: State<ApplicationContainer>) -> Result<Option<Task>, String> {
+pub fn get_task(
+    id: String,
+    container: State<ApplicationContainer>,
+) -> Result<Option<Task>, String> {
     let db = container.database();
 
     Ok(db.find::<Task>(TASKS_COLLECTION, &id).cloned())
@@ -65,4 +68,3 @@ pub fn delete_task(id: String, container: State<ApplicationContainer>) -> Result
 
     Ok(db.delete(TASKS_COLLECTION, &id))
 }
-

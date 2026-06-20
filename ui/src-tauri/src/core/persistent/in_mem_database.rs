@@ -11,11 +11,7 @@ impl InMemDatabase {
         Self { db: HashMap::new() }
     }
 
-    pub fn add<T: StoredEntity + 'static>(
-        &mut self,
-        collection: impl Into<String>,
-        entity: T,
-    ) {
+    pub fn add<T: StoredEntity + 'static>(&mut self, collection: impl Into<String>, entity: T) {
         self.db
             .entry(collection.into())
             .or_insert_with(EntitySet::new)

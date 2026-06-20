@@ -1,5 +1,5 @@
-use std::sync::{Mutex, MutexGuard};
 use crate::core::persistent::in_mem_database::InMemDatabase;
+use std::sync::{Mutex, MutexGuard};
 
 pub struct ApplicationContainer {
     database: Mutex<InMemDatabase>,
