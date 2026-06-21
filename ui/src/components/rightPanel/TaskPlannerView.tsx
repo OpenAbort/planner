@@ -1,9 +1,10 @@
-import {MouseEvent, PointerEvent, useEffect, useMemo, useRef, useState} from "react";
+import {FormEvent, MouseEvent, PointerEvent, useEffect, useMemo, useRef, useState} from "react";
 import type {NodePosition} from "./states/taskPlannerState.ts";
 import {useTaskPlannerState} from "./states/taskPlannerState.ts";
 import {useTaskPlannerPositions} from "@/src/hooks/useTaskPlannerPositions.ts";
 import {useTaskPrerequisites} from "@/src/hooks/useTaskPrerequisites.ts";
-import type {Task} from "@/src/types/task.ts";
+import type {Task, TaskStatus} from "@/src/types/task.ts";
+import {AddTaskDialog} from "@/src/components/common/dialogs/AddTaskDialog.tsx";
 import {TaskPlannerCanvasContextMenu} from "./TaskPlannerCanvasContextMenu.tsx";
 import {TaskPlannerLinks} from "./TaskPlannerLinks.tsx";
 import {TaskPlannerNode} from "./TaskPlannerNode.tsx";
@@ -22,6 +23,11 @@ type DraggingNode = {
 
 type TaskPlannerViewProps = {
     tasks: Task[];
+    onAddTask: (
+        title: string,
+        description: string,
+        status: TaskStatus,
+    ) => Promise<Task>;
     onRequestTaskDetails: (taskId: string) => void;
 };
 
@@ -36,11 +42,15 @@ type PlannerContextMenu =
     taskId: string;
 };
 
-export function TaskPlannerView({tasks, onRequestTaskDetails}: TaskPlannerViewProps) {
+export function TaskPlannerView({tasks, onAddTask, onRequestTaskDetails}: TaskPlannerViewProps) {
     const canvasRef = useRef<HTMLDivElement | null>(null);
     const graphViewportRef = useRef<HTMLDivElement | null>(null);
     const [draggingNode, setDraggingNode] = useState<DraggingNode | null>(null);
     const [contextMenu, setContextMenu] = useState<PlannerContextMenu | null>(null);
+    const [pendingTaskPosition, setPendingTaskPosition] = useState<NodePosition | null>(null);
+    const [taskTitle, setTaskTitle] = useState("");
+    const [taskDescription, setTaskDescription] = useState("");
+    const [taskStatus, setTaskStatus] = useState<TaskStatus>("OPEN");
     const [zoom, setZoom] = useState(1);
     const {
         activeConnector,
@@ -129,6 +139,39 @@ export function TaskPlannerView({tasks, onRequestTaskDetails}: TaskPlannerViewPr
 
     function updateZoom(nextZoom: number) {
         setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(nextZoom.toFixed(2)))));
+    }
+
+    function resetTaskForm() {
+        setTaskTitle("");
+        setTaskDescription("");
+        setTaskStatus("OPEN");
+    }
+
+    function closeAddTaskDialog() {
+        setPendingTaskPosition(null);
+        resetTaskForm();
+    }
+
+    async function handleAddTaskSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+
+        const title = taskTitle.trim();
+
+        if (!title || !pendingTaskPosition) {
+            return;
+        }
+
+        const createdTask = await onAddTask(
+            title,
+            taskDescription.trim(),
+            taskStatus,
+        );
+
+        await saveNodePosition(createdTask.id, {
+            x: Math.max(12, pendingTaskPosition.x),
+            y: Math.max(12, pendingTaskPosition.y),
+        });
+        closeAddTaskDialog();
     }
 
     function closeContextMenu() {
@@ -316,11 +359,12 @@ export function TaskPlannerView({tasks, onRequestTaskDetails}: TaskPlannerViewPr
                         <TaskPlannerCanvasContextMenu
                             hasActiveConnector={Boolean(activeConnector)}
                             position={contextMenu.position}
-                            onCancelConnector={cancelConnector}
-                            onClose={closeContextMenu}
-                            onResetLayout={() => {
-                                void resetPlannerPositions();
-                            }}
+                    onCancelConnector={cancelConnector}
+                    onClose={closeContextMenu}
+                    onCreateTask={() => setPendingTaskPosition(contextMenu.position)}
+                    onResetLayout={() => {
+                        void resetPlannerPositions();
+                    }}
                         />
                     )}
 
@@ -344,6 +388,20 @@ export function TaskPlannerView({tasks, onRequestTaskDetails}: TaskPlannerViewPr
                     )}
                 </div>
             </div>
+            {pendingTaskPosition && (
+                <AddTaskDialog
+                    taskTitle={taskTitle}
+                    taskDescription={taskDescription}
+                    taskStatus={taskStatus}
+                    onClose={closeAddTaskDialog}
+                    onSubmit={(event) => {
+                        handleAddTaskSubmit(event).catch(console.error);
+                    }}
+                    onTaskDescriptionChange={setTaskDescription}
+                    onTaskStatusChange={setTaskStatus}
+                    onTaskTitleChange={setTaskTitle}
+                />
+            )}
         </div>
     );
 }

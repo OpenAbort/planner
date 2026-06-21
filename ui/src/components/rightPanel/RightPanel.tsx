@@ -9,6 +9,11 @@ type RightPanelTab = "details" | "planner";
 
 type RightPanelProps = {
   tasks: Task[];
+  onAddTask: (
+    title: string,
+    description: string,
+    status: TaskStatus,
+  ) => Promise<Task>;
   onUpdateTask: (task: {
     id: string;
     title: string;
@@ -17,7 +22,7 @@ type RightPanelProps = {
   }) => Promise<Task | null>;
 };
 
-export function RightPanel({ tasks, onUpdateTask }: RightPanelProps) {
+export function RightPanel({ tasks, onAddTask, onUpdateTask }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<RightPanelTab>("details");
   const selectedTaskId = useTaskSelectionState((state) => state.selectedTaskId);
   const selectTask = useTaskSelectionState((state) => state.selectTask);
@@ -60,6 +65,7 @@ export function RightPanel({ tasks, onUpdateTask }: RightPanelProps) {
       ) : (
         <TaskPlannerView
           tasks={tasks}
+          onAddTask={onAddTask}
           onRequestTaskDetails={(taskId) => {
             selectTask(taskId);
             setActiveTab("details");

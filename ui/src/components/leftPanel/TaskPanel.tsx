@@ -12,7 +12,7 @@ import {useTaskSelectionState} from "@/src/states/taskSelectionState.ts";
 type TaskPanelProps = {
     tasks: Task[];
     remainingTasks: number;
-    onAddTask: (title: string, description: string, status: TaskStatus) => void;
+    onAddTask: (title: string, description: string, status: TaskStatus) => void | Promise<Task>;
     onRemoveTasks: (taskIds: string[]) => void;
     onReorderTask: (sourceTaskId: string, targetTaskId: string) => void;
 };

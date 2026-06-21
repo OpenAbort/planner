@@ -1,4 +1,4 @@
-import { MousePointer2, RotateCcw, X } from "lucide-react";
+import { MousePointer2, Plus, RotateCcw, X } from "lucide-react";
 import type { NodePosition } from "./states/taskPlannerState.ts";
 
 type TaskPlannerCanvasContextMenuProps = {
@@ -6,6 +6,7 @@ type TaskPlannerCanvasContextMenuProps = {
   position: NodePosition;
   onCancelConnector: () => void;
   onClose: () => void;
+  onCreateTask: () => void;
   onResetLayout: () => void;
 };
 
@@ -14,6 +15,7 @@ export function TaskPlannerCanvasContextMenu({
   position,
   onCancelConnector,
   onClose,
+  onCreateTask,
   onResetLayout,
 }: TaskPlannerCanvasContextMenuProps) {
   return (
@@ -27,6 +29,18 @@ export function TaskPlannerCanvasContextMenu({
       aria-label="Task planner actions"
       onPointerDown={(event) => event.stopPropagation()}
     >
+      <button
+        className="task-planner-context-menu-item"
+        type="button"
+        role="menuitem"
+        onClick={() => {
+          onCreateTask();
+          onClose();
+        }}
+      >
+        <Plus className="size-4" />
+        Create task
+      </button>
       <button
         className="task-planner-context-menu-item"
         type="button"

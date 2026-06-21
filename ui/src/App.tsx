@@ -29,7 +29,7 @@ function App() {
     );
 
     async function addTask(title: string, description: string, status: TaskStatus) {
-        await at({title, description, status});
+        return await at({title, description, status});
     }
 
     async function removeTasks(taskIds: string[]) {
@@ -66,7 +66,11 @@ function App() {
             </Panel>
             <Separator className="panel-resize-handle" aria-label="Resize task panel"/>
             <Panel minSize="360px">
-                <RightPanel tasks={onUITasks} onUpdateTask={updateTask}/>
+                <RightPanel
+                    tasks={onUITasks}
+                    onAddTask={addTask}
+                    onUpdateTask={updateTask}
+                />
             </Panel>
         </Group>
     );

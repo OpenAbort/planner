@@ -1,11 +1,11 @@
 import { SubmitEvent, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
-import type { TaskStatus } from "../../types/task.ts";
+import type { Task, TaskStatus } from "../../types/task.ts";
 import { AddTaskDialog } from "../common/dialogs/AddTaskDialog.tsx";
 
 type TaskFormProps = {
-  onAddTask: (title: string, description: string, status: TaskStatus) => void;
+  onAddTask: (title: string, description: string, status: TaskStatus) => void | Promise<Task>;
 };
 
 export function TaskForm({ onAddTask }: TaskFormProps) {
