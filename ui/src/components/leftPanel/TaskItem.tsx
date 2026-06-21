@@ -11,6 +11,7 @@ import {getTaskStatusOption} from "../common/taskStatus.tsx";
 type TaskItemProps = {
     task: Task;
     isSelecting: boolean;
+    isActive: boolean;
     isSelected: boolean;
     onRequestDeleteTask: (taskId: string) => void;
     onSelectTask: (taskId: string) => void;
@@ -20,6 +21,7 @@ type TaskItemProps = {
 export function TaskItem({
                              task,
                              isSelecting,
+                             isActive,
                              isSelected,
                              onRequestDeleteTask,
                              onSelectTask,
@@ -45,7 +47,8 @@ export function TaskItem({
                 isSelecting
                     ? "grid-cols-[18px_22px_minmax(0,1fr)_auto_26px]"
                     : "grid-cols-[18px_minmax(0,1fr)_auto_26px]",
-                isSelected && "border-primary/50 bg-slate-50",
+                isActive && "border-primary shadow-[inset_3px_0_0_#2563eb,0_8px_18px_rgba(37,99,235,0.12)]",
+                isSelected && "border-primary shadow-[inset_3px_0_0_#0f172a]",
                 isDragging && "z-10 opacity-70 shadow-lg"
             )}
             style={{
@@ -87,6 +90,8 @@ export function TaskItem({
             <span
                 className={cn(
                     "relative min-w-0 overflow-hidden whitespace-nowrap text-left leading-[1.3] after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-6 after:bg-gradient-to-r after:from-transparent after:to-white after:content-['']",
+                    isActive && "font-semibold after:to-blue-50",
+                    isSelected && "font-semibold after:to-slate-100",
                     task.status === "CLOSE" && "text-slate-400 line-through"
                 )}
             >

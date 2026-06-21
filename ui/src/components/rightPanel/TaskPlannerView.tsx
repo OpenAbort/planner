@@ -10,6 +10,10 @@ import {TaskPlannerNode} from "./TaskPlannerNode.tsx";
 import {TaskPlannerNodeContextMenu} from "./TaskPlannerNodeContextMenu.tsx";
 import {getDefaultPosition, NODE_HEIGHT, NODE_WIDTH,} from "./taskPlannerGeometry.ts";
 
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 1.8;
+const ZOOM_STEP = 0.1;
+
 type DraggingNode = {
     taskId: string;
     startPointer: NodePosition;
@@ -34,8 +38,10 @@ type PlannerContextMenu =
 
 export function TaskPlannerView({tasks, onRequestTaskDetails}: TaskPlannerViewProps) {
     const canvasRef = useRef<HTMLDivElement | null>(null);
+    const graphViewportRef = useRef<HTMLDivElement | null>(null);
     const [draggingNode, setDraggingNode] = useState<DraggingNode | null>(null);
     const [contextMenu, setContextMenu] = useState<PlannerContextMenu | null>(null);
+    const [zoom, setZoom] = useState(1);
     const {
         activeConnector,
         cancelConnector,
@@ -80,6 +86,14 @@ export function TaskPlannerView({tasks, onRequestTaskDetails}: TaskPlannerViewPr
         };
     }, [positions]);
 
+    const scaledCanvasSize = useMemo(
+        () => ({
+            width: canvasSize.width * zoom,
+            height: canvasSize.height * zoom,
+        }),
+        [canvasSize, zoom],
+    );
+
     useEffect(() => {
         if (!contextMenu) {
             return;
@@ -96,22 +110,25 @@ export function TaskPlannerView({tasks, onRequestTaskDetails}: TaskPlannerViewPr
     }, [contextMenu]);
 
     function getCanvasPoint(event: PointerEvent): NodePosition {
-        const rect = canvasRef.current?.getBoundingClientRect();
+        const rect = graphViewportRef.current?.getBoundingClientRect();
 
         return {
-            x: event.clientX - (rect?.left ?? 0),
-            y: event.clientY - (rect?.top ?? 0),
+            x: (event.clientX - (rect?.left ?? 0)) / zoom,
+            y: (event.clientY - (rect?.top ?? 0)) / zoom,
         };
     }
 
     function getContextMenuPoint(event: MouseEvent<HTMLElement>): NodePosition {
-        const canvas = canvasRef.current;
-        const rect = canvas?.getBoundingClientRect();
+        const rect = graphViewportRef.current?.getBoundingClientRect();
 
         return {
-            x: event.clientX - (rect?.left ?? 0) + (canvas?.scrollLeft ?? 0),
-            y: event.clientY - (rect?.top ?? 0) + (canvas?.scrollTop ?? 0),
+            x: (event.clientX - (rect?.left ?? 0)) / zoom,
+            y: (event.clientY - (rect?.top ?? 0)) / zoom,
         };
+    }
+
+    function updateZoom(nextZoom: number) {
+        setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(nextZoom.toFixed(2)))));
     }
 
     function closeContextMenu() {
@@ -139,7 +156,7 @@ export function TaskPlannerView({tasks, onRequestTaskDetails}: TaskPlannerViewPr
     }
 
     function handleNodePointerDown(event: PointerEvent, taskId: string) {
-        if (event.button !== 0) {
+        if (event.button !== 0 || activeConnector) {
             return;
         }
 
@@ -206,7 +223,7 @@ export function TaskPlannerView({tasks, onRequestTaskDetails}: TaskPlannerViewPr
         }
 
         event.stopPropagation();
-        void addPrerequisite(activeConnector.prerequisiteTaskId, taskId);
+        addPrerequisite(activeConnector.prerequisiteTaskId, taskId).catch(console.error);
     }
 
     if (tasks.length === 0) {
@@ -233,56 +250,100 @@ export function TaskPlannerView({tasks, onRequestTaskDetails}: TaskPlannerViewPr
             }}
         >
             {feedback && <div className="task-planner-feedback">{feedback}</div>}
-            <TaskPlannerLinks
-                activeConnector={activeConnector}
-                canvasSize={canvasSize}
-                links={visiblePrerequisiteLinks}
-                positions={positions}
-            />
-
-            {tasks.map((task) => (
-                <TaskPlannerNode
-                    key={task.id}
-                    isDragging={draggingNode?.taskId === task.id}
-                    position={positions[task.id]}
-                    task={task}
-                    onConnectorPointerDown={handleConnectorPointerDown}
-                    onNodeContextMenu={handleNodeContextMenu}
-                    onNodePointerDown={handleNodePointerDown}
-                    onNodePointerUp={handleConnectorTargetPointerUp}
-                />
-            ))}
-
-            {contextMenu?.kind === "canvas" && (
-                <TaskPlannerCanvasContextMenu
-                    hasActiveConnector={Boolean(activeConnector)}
-                    position={contextMenu.position}
-                    onCancelConnector={cancelConnector}
-                    onClose={closeContextMenu}
-                    onResetLayout={() => {
-                        void resetPlannerPositions();
+            <div className="task-planner-zoom-controls" aria-label="Task planner zoom controls">
+                <button
+                    type="button"
+                    aria-label="Zoom out"
+                    disabled={zoom <= MIN_ZOOM}
+                    onClick={() => updateZoom(zoom - ZOOM_STEP)}
+                >
+                    -
+                </button>
+                <span>{Math.round(zoom * 100)}%</span>
+                <button
+                    type="button"
+                    aria-label="Zoom in"
+                    disabled={zoom >= MAX_ZOOM}
+                    onClick={() => updateZoom(zoom + ZOOM_STEP)}
+                >
+                    +
+                </button>
+                <button
+                    type="button"
+                    aria-label="Reset zoom"
+                    onClick={() => updateZoom(1)}
+                >
+                    Reset
+                </button>
+            </div>
+            <div
+                className="task-planner-graph-viewport"
+                ref={graphViewportRef}
+                style={{
+                    width: scaledCanvasSize.width,
+                    height: scaledCanvasSize.height,
+                }}
+            >
+                <div
+                    className="task-planner-graph-layer"
+                    style={{
+                        width: canvasSize.width,
+                        height: canvasSize.height,
+                        transform: `scale(${zoom})`,
                     }}
-                />
-            )}
+                >
+                    <TaskPlannerLinks
+                        activeConnector={activeConnector}
+                        canvasSize={canvasSize}
+                        links={visiblePrerequisiteLinks}
+                        positions={positions}
+                    />
 
-            {contextMenu?.kind === "node" && (
-                <TaskPlannerNodeContextMenu
-                    position={contextMenu.position}
-                    prerequisiteCount={getPrerequisiteCount(contextMenu.taskId)}
-                    taskTitle={
-                        tasks.find((task) => task.id === contextMenu.taskId)?.title ??
-                        "Task"
-                    }
-                    onClearPrerequisites={() =>
-                        clearTaskPrerequisites(contextMenu.taskId)
-                    }
-                    onClose={closeContextMenu}
-                    onOpenDetails={() => {
-                        onRequestTaskDetails(contextMenu.taskId);
-                        closeContextMenu();
-                    }}
-                />
-            )}
+                    {tasks.map((task) => (
+                        <TaskPlannerNode
+                            key={task.id}
+                            isDragging={draggingNode?.taskId === task.id}
+                            position={positions[task.id]}
+                            task={task}
+                            onConnectorPointerDown={handleConnectorPointerDown}
+                            onNodeContextMenu={handleNodeContextMenu}
+                            onNodePointerDown={handleNodePointerDown}
+                            onNodePointerUp={handleConnectorTargetPointerUp}
+                        />
+                    ))}
+
+                    {contextMenu?.kind === "canvas" && (
+                        <TaskPlannerCanvasContextMenu
+                            hasActiveConnector={Boolean(activeConnector)}
+                            position={contextMenu.position}
+                            onCancelConnector={cancelConnector}
+                            onClose={closeContextMenu}
+                            onResetLayout={() => {
+                                void resetPlannerPositions();
+                            }}
+                        />
+                    )}
+
+                    {contextMenu?.kind === "node" && (
+                        <TaskPlannerNodeContextMenu
+                            position={contextMenu.position}
+                            prerequisiteCount={getPrerequisiteCount(contextMenu.taskId)}
+                            taskTitle={
+                                tasks.find((task) => task.id === contextMenu.taskId)?.title ??
+                                "Task"
+                            }
+                            onClearPrerequisites={() =>
+                                clearTaskPrerequisites(contextMenu.taskId)
+                            }
+                            onClose={closeContextMenu}
+                            onOpenDetails={() => {
+                                onRequestTaskDetails(contextMenu.taskId);
+                                closeContextMenu();
+                            }}
+                        />
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

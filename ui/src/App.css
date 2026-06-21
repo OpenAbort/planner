@@ -375,15 +375,18 @@ h1 {
     touch-action: none;
 }
 
-.task-planner-canvas::before {
-    position: absolute;
-    inset: 0;
+.task-planner-graph-viewport {
+    position: relative;
     min-width: 900px;
     min-height: 680px;
     background: radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.52) 1px, transparent 0);
     background-size: 24px 24px;
-    content: "";
-    pointer-events: none;
+}
+
+.task-planner-graph-layer {
+    position: absolute;
+    inset: 0;
+    transform-origin: 0 0;
 }
 
 .task-planner-links {
@@ -483,6 +486,53 @@ h1 {
     font-size: 13px;
     font-weight: 800;
     padding: 9px 12px;
+}
+
+.task-planner-zoom-controls {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    z-index: 5;
+    display: flex;
+    width: fit-content;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 4px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+}
+
+.task-planner-zoom-controls button,
+.task-planner-zoom-controls span {
+    display: grid;
+    min-width: 34px;
+    height: 30px;
+    place-items: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #172033;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.task-planner-zoom-controls span {
+    min-width: 46px;
+    color: #475569;
+}
+
+.task-planner-zoom-controls button:hover:not(:disabled),
+.task-planner-zoom-controls button:focus-visible {
+    background: #eff6ff;
+    color: #1d4ed8;
+    outline: none;
+}
+
+.task-planner-zoom-controls button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
 }
 
 .task-planner-context-menu {

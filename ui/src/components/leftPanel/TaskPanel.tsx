@@ -25,6 +25,7 @@ export function TaskPanel({
                               onReorderTask,
                           }: TaskPanelProps) {
     const state = useLeftPanelState();
+    const selectedTaskId = useTaskSelectionState((selectionState) => selectionState.selectedTaskId);
     const selectTask = useTaskSelectionState((selectionState) => selectionState.selectTask);
     const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
         () => new Set()
@@ -112,6 +113,7 @@ export function TaskPanel({
             <TaskList
                 tasks={tasks}
                 isSelecting={state.isTaskItemSelecting}
+                activeTaskId={selectedTaskId}
                 selectedTaskIds={selectedTaskIds}
                 onRequestDeleteTask={(taskId) => setDeleteTaskIds([taskId])}
                 onReorderTask={onReorderTask}

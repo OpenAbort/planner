@@ -18,6 +18,7 @@ import type { Task } from "../../types/task.ts";
 type TaskListProps = {
   tasks: Task[];
   isSelecting: boolean;
+  activeTaskId: string | null;
   selectedTaskIds: Set<string>;
   onRequestDeleteTask: (taskId: string) => void;
   onReorderTask: (sourceTaskId: string, targetTaskId: string) => void;
@@ -28,6 +29,7 @@ type TaskListProps = {
 export function TaskList({
   tasks,
   isSelecting,
+  activeTaskId,
   selectedTaskIds,
   onRequestDeleteTask,
   onReorderTask,
@@ -74,6 +76,7 @@ export function TaskList({
               key={task.id}
               task={task}
               isSelecting={isSelecting}
+              isActive={activeTaskId === task.id}
               isSelected={selectedTaskIds.has(task.id)}
               onRequestDeleteTask={onRequestDeleteTask}
               onSelectTask={onSelectTask}

@@ -61,6 +61,12 @@ export function useTaskPrerequisites({
         async (prerequisiteTaskId: string, taskId: string) => {
             setError(null);
 
+            const didAdd = addLink(prerequisiteTaskId, taskId);
+
+            if (!didAdd) {
+                return false;
+            }
+
             let didPersist: boolean;
 
             try {
@@ -78,7 +84,7 @@ export function useTaskPrerequisites({
                 return false;
             }
 
-            return addLink(prerequisiteTaskId, taskId);
+            return true;
         },
         [addLink],
     );
