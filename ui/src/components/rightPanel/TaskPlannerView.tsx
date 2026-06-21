@@ -9,7 +9,8 @@ import {TaskPlannerCanvasContextMenu} from "./TaskPlannerCanvasContextMenu.tsx";
 import {TaskPlannerLinks} from "./TaskPlannerLinks.tsx";
 import {TaskPlannerNode} from "./TaskPlannerNode.tsx";
 import {TaskPlannerNodeContextMenu} from "./TaskPlannerNodeContextMenu.tsx";
-import {getDefaultPosition, NODE_HEIGHT, NODE_WIDTH,} from "./taskPlannerGeometry.ts";
+import {TaskPlannerZoomControls} from "./TaskPlannerZoomControls.tsx";
+import {getDefaultPosition, GRID_LEFT, GRID_TOP, GRID_X, GRID_Y, NODE_HEIGHT, NODE_WIDTH,} from "./taskPlannerGeometry.ts";
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 1.8;
@@ -375,6 +376,111 @@ export function TaskPlannerView({
         }).catch(console.error);
     }
 
+    function getAutoSortedPositions(): Record<string, NodePosition> {
+        const taskOrder = new Map(tasks.map((task, index) => [task.id, index]));
+        const dependencyCount = new Map(tasks.map((task) => [task.id, 0]));
+        const dependentsByPrerequisite = new Map<string, string[]>();
+        const maxPrerequisiteLayer = new Map(tasks.map((task) => [task.id, 0]));
+
+        visiblePrerequisiteLinks.forEach((link) => {
+            if (!dependencyCount.has(link.prerequisiteTaskId) || !dependencyCount.has(link.taskId)) {
+                return;
+            }
+
+            dependencyCount.set(link.taskId, (dependencyCount.get(link.taskId) ?? 0) + 1);
+            dependentsByPrerequisite.set(link.prerequisiteTaskId, [
+                ...(dependentsByPrerequisite.get(link.prerequisiteTaskId) ?? []),
+                link.taskId,
+            ]);
+        });
+
+        const queue = tasks
+            .filter((task) => dependencyCount.get(task.id) === 0)
+            .map((task) => task.id);
+        const layerByTaskId = new Map<string, number>();
+
+        while (queue.length > 0) {
+            queue.sort((leftTaskId, rightTaskId) => {
+                const layerDelta =
+                    (maxPrerequisiteLayer.get(leftTaskId) ?? 0) -
+                    (maxPrerequisiteLayer.get(rightTaskId) ?? 0);
+
+                if (layerDelta !== 0) {
+                    return layerDelta;
+                }
+
+                return (taskOrder.get(leftTaskId) ?? 0) - (taskOrder.get(rightTaskId) ?? 0);
+            });
+
+            const taskId = queue.shift();
+
+            if (!taskId) {
+                continue;
+            }
+
+            const taskLayer = maxPrerequisiteLayer.get(taskId) ?? 0;
+            layerByTaskId.set(taskId, taskLayer);
+
+            for (const dependentTaskId of dependentsByPrerequisite.get(taskId) ?? []) {
+                maxPrerequisiteLayer.set(
+                    dependentTaskId,
+                    Math.max(maxPrerequisiteLayer.get(dependentTaskId) ?? 0, taskLayer + 1),
+                );
+                dependencyCount.set(
+                    dependentTaskId,
+                    Math.max(0, (dependencyCount.get(dependentTaskId) ?? 0) - 1),
+                );
+
+                if (dependencyCount.get(dependentTaskId) === 0) {
+                    queue.push(dependentTaskId);
+                }
+            }
+        }
+
+        tasks.forEach((task) => {
+            if (!layerByTaskId.has(task.id)) {
+                layerByTaskId.set(task.id, maxPrerequisiteLayer.get(task.id) ?? 0);
+            }
+        });
+
+        const taskIdsByLayer = new Map<number, string[]>();
+
+        tasks.forEach((task) => {
+            const layer = layerByTaskId.get(task.id) ?? 0;
+            taskIdsByLayer.set(layer, [...(taskIdsByLayer.get(layer) ?? []), task.id]);
+        });
+
+        const sortedPositions: Record<string, NodePosition> = {};
+
+        [...taskIdsByLayer.entries()]
+            .sort(([leftLayer], [rightLayer]) => leftLayer - rightLayer)
+            .forEach(([layer, layerTaskIds]) => {
+                layerTaskIds
+                    .sort(
+                        (leftTaskId, rightTaskId) =>
+                            (taskOrder.get(leftTaskId) ?? 0) - (taskOrder.get(rightTaskId) ?? 0),
+                    )
+                    .forEach((taskId, rowIndex) => {
+                        sortedPositions[taskId] = {
+                            x: GRID_LEFT + layer * GRID_X,
+                            y: GRID_TOP + rowIndex * GRID_Y,
+                        };
+                    });
+            });
+
+        return sortedPositions;
+    }
+
+    async function handleAutoSortPlanner() {
+        closeContextMenu();
+        clearFeedback();
+
+        const nextPositions = getAutoSortedPositions();
+        await Promise.all(
+            tasks.map((task) => saveNodePosition(task.id, nextPositions[task.id])),
+        );
+    }
+
     function handleCanvasPointerDown(event: PointerEvent<HTMLDivElement>) {
         if (event.button !== 0) {
             return;
@@ -422,32 +528,14 @@ export function TaskPlannerView({
     return (
         <div className="task-planner-canvas-shell">
             {feedback && <div className="task-planner-feedback">{feedback}</div>}
-            <div className="task-planner-zoom-controls" aria-label="Task planner zoom controls">
-                <button
-                    type="button"
-                    aria-label="Zoom out"
-                    disabled={zoom <= MIN_ZOOM}
-                    onClick={() => updateZoom(zoom - ZOOM_STEP)}
-                >
-                    -
-                </button>
-                <span>{Math.round(zoom * 100)}%</span>
-                <button
-                    type="button"
-                    aria-label="Zoom in"
-                    disabled={zoom >= MAX_ZOOM}
-                    onClick={() => updateZoom(zoom + ZOOM_STEP)}
-                >
-                    +
-                </button>
-                <button
-                    type="button"
-                    aria-label="Reset zoom"
-                    onClick={() => updateZoom(1)}
-                >
-                    Reset
-                </button>
-            </div>
+            <TaskPlannerZoomControls
+                canZoomIn={zoom < MAX_ZOOM}
+                canZoomOut={zoom > MIN_ZOOM}
+                zoom={zoom}
+                onResetZoom={() => updateZoom(1)}
+                onZoomIn={() => updateZoom(zoom + ZOOM_STEP)}
+                onZoomOut={() => updateZoom(zoom - ZOOM_STEP)}
+            />
             <div
                 className={`task-planner-canvas${panningCanvas ? " panning" : ""}`}
                 ref={canvasRef}
@@ -499,6 +587,9 @@ export function TaskPlannerView({
                             <TaskPlannerCanvasContextMenu
                                 hasActiveConnector={Boolean(activeConnector)}
                                 position={contextMenu.position}
+                                onAutoSortLayout={() => {
+                                    handleAutoSortPlanner().catch(console.error);
+                                }}
                                 onCancelConnector={cancelConnector}
                                 onClose={closeContextMenu}
                                 onCreateTask={() => setPendingTaskPosition(contextMenu.position)}

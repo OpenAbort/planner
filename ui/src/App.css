@@ -69,8 +69,9 @@ button {
 }
 
 .app-shell {
-    height: 100vh;
-    min-height: 100vh;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
     background: #f4f7fb;
 }
 
@@ -178,7 +179,9 @@ h1 {
 .detail-panel {
     display: flex;
     min-width: 0;
-    min-height: 100vh;
+    height: 100%;
+    min-height: 0;
+    max-height: 100dvh;
     flex-direction: column;
     gap: 20px;
     background: linear-gradient(rgba(226, 232, 240, 0.65) 1px, transparent 1px),
@@ -366,8 +369,11 @@ h1 {
 
 .task-planner-canvas-shell {
     position: relative;
+    display: flex;
     min-height: 0;
     flex: 1 1 auto;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .task-planner-canvas {
@@ -388,12 +394,12 @@ h1 {
 }
 
 .task-planner-canvas::-webkit-scrollbar {
-    width: 0;
-    height: 0;
+    width: 6px;
+    height: 6px;
 }
 
 .task-planner-canvas {
-    scrollbar-width: none;
+    scrollbar-width: thin;
 }
 
 .task-planner-graph-viewport {

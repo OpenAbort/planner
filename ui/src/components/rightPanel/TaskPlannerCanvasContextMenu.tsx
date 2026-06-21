@@ -1,10 +1,11 @@
-import { MousePointer2, Plus, RotateCcw, X } from "lucide-react";
+import { MousePointer2, Plus, RotateCcw, Rows3, X } from "lucide-react";
 import type { NodePosition } from "./states/taskPlannerState.ts";
 
 type TaskPlannerCanvasContextMenuProps = {
   hasActiveConnector: boolean;
   position: NodePosition;
   onCancelConnector: () => void;
+  onAutoSortLayout: () => void;
   onClose: () => void;
   onCreateTask: () => void;
   onResetLayout: () => void;
@@ -14,6 +15,7 @@ export function TaskPlannerCanvasContextMenu({
   hasActiveConnector,
   position,
   onCancelConnector,
+  onAutoSortLayout,
   onClose,
   onCreateTask,
   onResetLayout,
@@ -40,6 +42,18 @@ export function TaskPlannerCanvasContextMenu({
       >
         <Plus className="size-4" />
         Create task
+      </button>
+      <button
+        className="task-planner-context-menu-item"
+        type="button"
+        role="menuitem"
+        onClick={() => {
+          onAutoSortLayout();
+          onClose();
+        }}
+      >
+        <Rows3 className="size-4" />
+        Auto sort layout
       </button>
       <button
         className="task-planner-context-menu-item"
