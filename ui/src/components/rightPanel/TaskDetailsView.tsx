@@ -112,7 +112,9 @@ export function TaskDetailsView({ task, onUpdateTask }: TaskDetailsViewProps) {
                   status === option.value && "selected",
                 )}
                 type="button"
+                data-status={option.value}
                 data-selected={status === option.value}
+                aria-pressed={status === option.value}
                 onClick={() => setStatus(option.value)}
               >
                 <StatusIcon className="size-4" />
