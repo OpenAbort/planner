@@ -1,4 +1,4 @@
-type PlannerMode = "view" | "edit";
+type PlannerMode = "view" | "edit" | "select";
 
 type TaskPlannerModeControlsProps = {
     mode: PlannerMode;
@@ -28,6 +28,15 @@ export function TaskPlannerModeControls({
                 onClick={() => onModeChange("edit")}
             >
                 Edit
+            </button>
+            <button
+                className={mode === "select" ? "active" : undefined}
+                type="button"
+                role="tab"
+                aria-selected={mode === "select"}
+                onClick={() => onModeChange("select")}
+            >
+                Select
             </button>
         </div>
     );

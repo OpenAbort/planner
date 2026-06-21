@@ -405,6 +405,10 @@ h1 {
     cursor: grabbing;
 }
 
+.task-planner-canvas.selecting {
+    cursor: crosshair;
+}
+
 .task-planner-canvas::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -426,6 +430,16 @@ h1 {
     position: absolute;
     inset: 0;
     transform-origin: 0 0;
+}
+
+.task-planner-selection-rect {
+    position: absolute;
+    z-index: 2;
+    border: 1px solid #0f172a;
+    border-radius: 6px;
+    background: rgba(15, 23, 42, 0.08);
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.18);
+    pointer-events: none;
 }
 
 .task-planner-links {

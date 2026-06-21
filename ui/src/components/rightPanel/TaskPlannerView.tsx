@@ -21,12 +21,12 @@ const ZOOM_STEP = 0.1;
 const AUTO_SORT_GRID_X = 360;
 const AUTO_SORT_GRID_Y = 190;
 
-type PlannerMode = "view" | "edit";
+type PlannerMode = "view" | "edit" | "select";
 
-type DraggingNode = {
-    taskId: string;
+type DraggingNodes = {
+    taskIds: string[];
     startPointer: NodePosition;
-    startPosition: NodePosition;
+    startPositions: Record<string, NodePosition>;
 };
 
 type PanningCanvas = {
@@ -39,6 +39,12 @@ type PanningCanvas = {
         left: number;
         top: number;
     };
+};
+
+type SelectingNodes = {
+    pointerId: number;
+    startPoint: NodePosition;
+    currentPoint: NodePosition;
 };
 
 type TaskPlannerViewProps = {
@@ -93,8 +99,10 @@ export function TaskPlannerView({
     const canvasRef = useRef<HTMLDivElement | null>(null);
     const graphViewportRef = useRef<HTMLDivElement | null>(null);
     const didDragNodeRef = useRef(false);
-    const [draggingNode, setDraggingNode] = useState<DraggingNode | null>(null);
+    const [draggingNodes, setDraggingNodes] = useState<DraggingNodes | null>(null);
     const [panningCanvas, setPanningCanvas] = useState<PanningCanvas | null>(null);
+    const [selectingNodes, setSelectingNodes] = useState<SelectingNodes | null>(null);
+    const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
     const [contextMenu, setContextMenu] = useState<PlannerContextMenu | null>(null);
     const [pendingTaskPosition, setPendingTaskPosition] = useState<NodePosition | null>(null);
     const [taskTitle, setTaskTitle] = useState("");
@@ -231,6 +239,19 @@ export function TaskPlannerView({
         });
     }, [positions, selectedTaskId, zoom]);
 
+    useEffect(() => {
+        setSelectedNodeIds((currentSelectedNodeIds) => {
+            const existingTaskIds = new Set(tasks.map((task) => task.id));
+            const nextSelectedNodeIds = new Set(
+                [...currentSelectedNodeIds].filter((taskId) => existingTaskIds.has(taskId)),
+            );
+
+            return nextSelectedNodeIds.size === currentSelectedNodeIds.size
+                ? currentSelectedNodeIds
+                : nextSelectedNodeIds;
+        });
+    }, [tasks]);
+
     function getCanvasPoint(event: PointerEvent): NodePosition {
         const rect = graphViewportRef.current?.getBoundingClientRect();
 
@@ -258,10 +279,13 @@ export function TaskPlannerView({
         closeContextMenu();
         setActiveTaskCard(null);
 
-        if (mode === "view") {
-            cancelConnector();
-            setDraggingNode(null);
-            setPanningCanvas(null);
+        cancelConnector();
+        setDraggingNodes(null);
+        setPanningCanvas(null);
+        setSelectingNodes(null);
+
+        if (mode !== "select") {
+            setSelectedNodeIds(new Set());
         }
     }
 
@@ -303,6 +327,46 @@ export function TaskPlannerView({
         setLinkLabelDraft("");
     }
 
+    function getSelectionRect(selection: SelectingNodes) {
+        const left = Math.min(selection.startPoint.x, selection.currentPoint.x);
+        const top = Math.min(selection.startPoint.y, selection.currentPoint.y);
+        const right = Math.max(selection.startPoint.x, selection.currentPoint.x);
+        const bottom = Math.max(selection.startPoint.y, selection.currentPoint.y);
+
+        return {
+            left,
+            top,
+            right,
+            bottom,
+            width: right - left,
+            height: bottom - top,
+        };
+    }
+
+    function getNodeIdsInSelection(selection: SelectingNodes) {
+        const rect = getSelectionRect(selection);
+
+        return tasks
+            .filter((task) => {
+                const position = positions[task.id];
+
+                if (!position) {
+                    return false;
+                }
+
+                const nodeRight = position.x + NODE_WIDTH;
+                const nodeBottom = position.y + NODE_HEIGHT;
+
+                return (
+                    nodeRight >= rect.left &&
+                    position.x <= rect.right &&
+                    nodeBottom >= rect.top &&
+                    position.y <= rect.bottom
+                );
+            })
+            .map((task) => task.id);
+    }
+
     function handleContextMenu(event: MouseEvent<HTMLDivElement>) {
         event.preventDefault();
 
@@ -335,7 +399,11 @@ export function TaskPlannerView({
     }
 
     function handleNodePointerDown(event: PointerEvent, taskId: string) {
-        if (plannerMode !== "edit" || event.button !== 0 || activeConnector) {
+        if (
+            (plannerMode !== "edit" && plannerMode !== "select") ||
+            event.button !== 0 ||
+            activeConnector
+        ) {
             return;
         }
 
@@ -343,10 +411,24 @@ export function TaskPlannerView({
         clearFeedback();
         event.currentTarget.setPointerCapture(event.pointerId);
         didDragNodeRef.current = false;
-        setDraggingNode({
-            taskId,
+        const draggedTaskIds = plannerMode === "select" && selectedNodeIds.has(taskId)
+            ? [...selectedNodeIds]
+            : [taskId];
+
+        if (plannerMode === "select" && !selectedNodeIds.has(taskId)) {
+            setSelectedNodeIds(new Set([taskId]));
+        }
+
+        setDraggingNodes({
+            taskIds: draggedTaskIds,
             startPointer: getCanvasPoint(event),
-            startPosition: positions[taskId],
+            startPositions: draggedTaskIds.reduce<Record<string, NodePosition>>(
+                (startPositions, draggedTaskId) => {
+                    startPositions[draggedTaskId] = positions[draggedTaskId];
+                    return startPositions;
+                },
+                {},
+            ),
         });
     }
 
@@ -358,6 +440,12 @@ export function TaskPlannerView({
 
         closeContextMenu();
         clearFeedback();
+
+        if (plannerMode === "select") {
+            setSelectedNodeIds(new Set([taskId]));
+            return;
+        }
+
         const position = positions[taskId];
 
         if (!position) {
@@ -396,17 +484,33 @@ export function TaskPlannerView({
 
         const point = getCanvasPoint(event);
 
-        if (draggingNode) {
+        if (draggingNodes) {
             if (
-                Math.abs(point.x - draggingNode.startPointer.x) > 3 ||
-                Math.abs(point.y - draggingNode.startPointer.y) > 3
+                Math.abs(point.x - draggingNodes.startPointer.x) > 3 ||
+                Math.abs(point.y - draggingNodes.startPointer.y) > 3
             ) {
                 didDragNodeRef.current = true;
             }
 
-            moveNode(draggingNode.taskId, {
-                x: Math.max(12, draggingNode.startPosition.x + point.x - draggingNode.startPointer.x),
-                y: Math.max(12, draggingNode.startPosition.y + point.y - draggingNode.startPointer.y),
+            draggingNodes.taskIds.forEach((taskId) => {
+                const startPosition = draggingNodes.startPositions[taskId];
+
+                if (!startPosition) {
+                    return;
+                }
+
+                moveNode(taskId, {
+                    x: Math.max(12, startPosition.x + point.x - draggingNodes.startPointer.x),
+                    y: Math.max(12, startPosition.y + point.y - draggingNodes.startPointer.y),
+                });
+            });
+            return;
+        }
+
+        if (selectingNodes) {
+            setSelectingNodes({
+                ...selectingNodes,
+                currentPoint: point,
             });
             return;
         }
@@ -417,29 +521,52 @@ export function TaskPlannerView({
     }
 
     function handlePointerUp(event: PointerEvent) {
-        const droppedNode = draggingNode
-            ? {
-                taskId: draggingNode.taskId,
-                position: positions[draggingNode.taskId],
-            }
-            : null;
+        const pointerUpPoint = getCanvasPoint(event);
+        const droppedNodes = draggingNodes?.taskIds.map((taskId) => {
+            const startPosition = draggingNodes.startPositions[taskId];
+
+            return {
+                taskId,
+                position: startPosition
+                    ? {
+                        x: Math.max(
+                            12,
+                            startPosition.x + pointerUpPoint.x - draggingNodes.startPointer.x,
+                        ),
+                        y: Math.max(
+                            12,
+                            startPosition.y + pointerUpPoint.y - draggingNodes.startPointer.y,
+                        ),
+                    }
+                    : positions[taskId],
+            };
+        }) ?? [];
+        const completedSelection = selectingNodes;
 
         if (
-            panningCanvas?.pointerId === event.pointerId &&
+            (panningCanvas?.pointerId === event.pointerId ||
+                completedSelection?.pointerId === event.pointerId) &&
             event.currentTarget.hasPointerCapture(event.pointerId)
         ) {
             event.currentTarget.releasePointerCapture(event.pointerId);
         }
 
-        setDraggingNode(null);
+        setDraggingNodes(null);
         setPanningCanvas(null);
+        setSelectingNodes(null);
 
         if (activeConnector) {
             cancelConnector();
         }
 
-        if (droppedNode) {
-            void saveNodePosition(droppedNode.taskId, droppedNode.position);
+        if (completedSelection) {
+            setSelectedNodeIds(new Set(getNodeIdsInSelection(completedSelection)));
+        }
+
+        if (droppedNodes.length > 0) {
+            void Promise.all(
+                droppedNodes.map((node) => saveNodePosition(node.taskId, node.position)),
+            );
         }
     }
 
@@ -648,12 +775,24 @@ export function TaskPlannerView({
         closeContextMenu();
         setActiveTaskCard(null);
 
-        if (startedOnInteractiveElement || activeConnector || draggingNode) {
+        if (startedOnInteractiveElement || activeConnector || draggingNodes) {
             return;
         }
 
         clearFeedback();
         event.currentTarget.setPointerCapture(event.pointerId);
+        const startPoint = getCanvasPoint(event);
+
+        if (plannerMode === "select") {
+            setSelectingNodes({
+                pointerId: event.pointerId,
+                startPoint,
+                currentPoint: startPoint,
+            });
+            setSelectedNodeIds(new Set());
+            return;
+        }
+
         setPanningCanvas({
             pointerId: event.pointerId,
             startPointer: {
@@ -691,7 +830,7 @@ export function TaskPlannerView({
                 />
             </div>
             <div
-                className={`task-planner-canvas${panningCanvas ? " panning" : ""}`}
+                className={`task-planner-canvas${panningCanvas ? " panning" : ""}${selectingNodes ? " selecting" : ""}`}
                 ref={canvasRef}
                 onContextMenu={handleContextMenu}
                 onPointerMove={handlePointerMove}
@@ -724,12 +863,24 @@ export function TaskPlannerView({
                             positions={positions}
                         />
 
+                        {selectingNodes && (
+                            <div
+                                className="task-planner-selection-rect"
+                                style={{
+                                    left: getSelectionRect(selectingNodes).left,
+                                    top: getSelectionRect(selectingNodes).top,
+                                    width: getSelectionRect(selectingNodes).width,
+                                    height: getSelectionRect(selectingNodes).height,
+                                }}
+                            />
+                        )}
+
                         {tasks.map((task) => (
                             <TaskPlannerNode
                                 key={task.id}
                                 isEditMode={plannerMode === "edit"}
-                                isDragging={draggingNode?.taskId === task.id}
-                                isSelected={selectedTaskId === task.id}
+                                isDragging={Boolean(draggingNodes?.taskIds.includes(task.id))}
+                                isSelected={selectedTaskId === task.id || selectedNodeIds.has(task.id)}
                                 position={positions[task.id]}
                                 task={task}
                                 onConnectorPointerDown={handleConnectorPointerDown}
