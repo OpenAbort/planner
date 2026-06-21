@@ -65,7 +65,9 @@ export function RightPanel({ tasks, onAddTask, onUpdateTask }: RightPanelProps) 
       ) : (
         <TaskPlannerView
           tasks={tasks}
+          selectedTaskId={selectedTaskId}
           onAddTask={onAddTask}
+          onUpdateTask={onUpdateTask}
           onRequestTaskDetails={(taskId) => {
             selectTask(taskId);
             setActiveTab("details");

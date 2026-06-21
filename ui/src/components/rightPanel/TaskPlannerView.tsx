@@ -23,11 +23,18 @@ type DraggingNode = {
 
 type TaskPlannerViewProps = {
     tasks: Task[];
+    selectedTaskId: string | null;
     onAddTask: (
         title: string,
         description: string,
         status: TaskStatus,
     ) => Promise<Task>;
+    onUpdateTask: (task: {
+        id: string;
+        title: string;
+        description: string;
+        status: TaskStatus;
+    }) => Promise<Task | null>;
     onRequestTaskDetails: (taskId: string) => void;
 };
 
@@ -42,7 +49,13 @@ type PlannerContextMenu =
     taskId: string;
 };
 
-export function TaskPlannerView({tasks, onAddTask, onRequestTaskDetails}: TaskPlannerViewProps) {
+export function TaskPlannerView({
+                                    tasks,
+                                    selectedTaskId,
+                                    onAddTask,
+                                    onUpdateTask,
+                                    onRequestTaskDetails,
+                                }: TaskPlannerViewProps) {
     const canvasRef = useRef<HTMLDivElement | null>(null);
     const graphViewportRef = useRef<HTMLDivElement | null>(null);
     const [draggingNode, setDraggingNode] = useState<DraggingNode | null>(null);
@@ -118,6 +131,49 @@ export function TaskPlannerView({tasks, onAddTask, onRequestTaskDetails}: TaskPl
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [contextMenu]);
+
+    useEffect(() => {
+        if (!selectedTaskId || !positions[selectedTaskId]) {
+            return;
+        }
+
+        const canvas = canvasRef.current;
+
+        if (!canvas) {
+            return;
+        }
+
+        const selectedPosition = positions[selectedTaskId];
+        const padding = 32;
+        const nodeLeft = selectedPosition.x * zoom;
+        const nodeTop = selectedPosition.y * zoom;
+        const nodeRight = nodeLeft + NODE_WIDTH * zoom;
+        const nodeBottom = nodeTop + NODE_HEIGHT * zoom;
+        const viewLeft = canvas.scrollLeft;
+        const viewTop = canvas.scrollTop;
+        const viewRight = viewLeft + canvas.clientWidth;
+        const viewBottom = viewTop + canvas.clientHeight;
+        const isVisible =
+            nodeLeft >= viewLeft + padding &&
+            nodeTop >= viewTop + padding &&
+            nodeRight <= viewRight - padding &&
+            nodeBottom <= viewBottom - padding;
+
+        if (isVisible) {
+            return;
+        }
+
+        const nextLeft = nodeLeft + (NODE_WIDTH * zoom) / 2 - canvas.clientWidth / 2;
+        const nextTop = nodeTop + (NODE_HEIGHT * zoom) / 2 - canvas.clientHeight / 2;
+
+        requestAnimationFrame(() => {
+            canvas.scrollTo({
+                left: Math.max(0, nextLeft),
+                top: Math.max(0, nextTop),
+                behavior: "smooth",
+            });
+        });
+    }, [positions, selectedTaskId, zoom]);
 
     function getCanvasPoint(event: PointerEvent): NodePosition {
         const rect = graphViewportRef.current?.getBoundingClientRect();
@@ -269,6 +325,19 @@ export function TaskPlannerView({tasks, onAddTask, onRequestTaskDetails}: TaskPl
         addPrerequisite(activeConnector.prerequisiteTaskId, taskId).catch(console.error);
     }
 
+    function handleUpdateTaskStatus(task: Task, status: TaskStatus) {
+        if (task.status === status) {
+            return;
+        }
+
+        onUpdateTask({
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status,
+        }).catch(console.error);
+    }
+
     if (tasks.length === 0) {
         return (
             <div className="right-panel-empty">
@@ -346,12 +415,14 @@ export function TaskPlannerView({tasks, onAddTask, onRequestTaskDetails}: TaskPl
                         <TaskPlannerNode
                             key={task.id}
                             isDragging={draggingNode?.taskId === task.id}
+                            isSelected={selectedTaskId === task.id}
                             position={positions[task.id]}
                             task={task}
                             onConnectorPointerDown={handleConnectorPointerDown}
                             onNodeContextMenu={handleNodeContextMenu}
                             onNodePointerDown={handleNodePointerDown}
                             onNodePointerUp={handleConnectorTargetPointerUp}
+                            onStatusChange={handleUpdateTaskStatus}
                         />
                     ))}
 
