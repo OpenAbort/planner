@@ -1,4 +1,4 @@
-import type { PointerEvent } from "react";
+import type { MouseEvent, PointerEvent } from "react";
 import { GitPullRequestArrow } from "lucide-react";
 import { getTaskStatusOption } from "@/src/components/common/taskStatus.tsx";
 import type { Task } from "@/src/types/task.ts";
@@ -11,6 +11,7 @@ type TaskPlannerNodeProps = {
   position: NodePosition;
   task: Task;
   onConnectorPointerDown: (event: PointerEvent, taskId: string) => void;
+  onNodeContextMenu: (event: MouseEvent<HTMLElement>, taskId: string) => void;
   onNodePointerDown: (event: PointerEvent, taskId: string) => void;
   onNodePointerUp: (event: PointerEvent, taskId: string) => void;
 };
@@ -20,6 +21,7 @@ export function TaskPlannerNode({
   position,
   task,
   onConnectorPointerDown,
+  onNodeContextMenu,
   onNodePointerDown,
   onNodePointerUp,
 }: TaskPlannerNodeProps) {
@@ -35,8 +37,11 @@ export function TaskPlannerNode({
         width: NODE_WIDTH,
         minHeight: NODE_HEIGHT,
       }}
-      onPointerDown={(event) => onNodePointerDown(event, task.id)}
+      onPointerDown={(event) => {
+        onNodePointerDown(event, task.id);
+      }}
       onPointerUp={(event) => onNodePointerUp(event, task.id)}
+      onContextMenu={(event) => onNodeContextMenu(event, task.id)}
     >
       <div className="task-planner-node-title">{task.title}</div>
       <div className={cn("task-planner-node-status", statusOption.badgeClassName)}>

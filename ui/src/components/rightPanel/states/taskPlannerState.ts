@@ -22,10 +22,12 @@ type TaskPlannerState = {
   activeConnector: ActiveConnector | null;
   feedback: string | null;
   moveNode: (taskId: string, position: NodePosition) => void;
+  resetNodePositions: () => void;
   startConnector: (prerequisiteTaskId: string, position: NodePosition) => void;
   updateConnector: (position: NodePosition) => void;
   cancelConnector: () => void;
   addLink: (prerequisiteTaskId: string, taskId: string) => boolean;
+  clearTaskPrerequisites: (taskId: string) => void;
   clearFeedback: () => void;
 };
 
@@ -75,6 +77,7 @@ export const useTaskPlannerState = create<TaskPlannerState>((set, get) => ({
         [taskId]: position,
       },
     })),
+  resetNodePositions: () => set({ nodePositions: {}, feedback: null }),
   startConnector: (prerequisiteTaskId, position) =>
     set({
       activeConnector: {
@@ -131,5 +134,11 @@ export const useTaskPlannerState = create<TaskPlannerState>((set, get) => ({
     });
     return true;
   },
+  clearTaskPrerequisites: (taskId) =>
+    set((state) => ({
+      activeConnector: null,
+      feedback: null,
+      links: state.links.filter((link) => link.taskId !== taskId),
+    })),
   clearFeedback: () => set({ feedback: null }),
 }));
