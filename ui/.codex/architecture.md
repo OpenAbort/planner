@@ -10,7 +10,8 @@ The React app starts at `src/main.tsx` and renders `src/App.tsx`.
 - Resize separator: `react-resizable-panels` separator with local CSS.
 - Right panel: `RightPanel`.
 
-Task data is loaded and mutated through `src/hooks/useTasks.ts`, which calls Tauri commands with `@tauri-apps/api/core` `invoke`.
+Task data is loaded and mutated through `src/hooks/useTasks.ts`, which calls Tauri commands with `@tauri-apps/api/core`
+`invoke`.
 
 ## Left Panel
 
@@ -56,7 +57,7 @@ Important files:
 
 - `lib.rs`: Tauri app setup and command registration.
 - `main.rs`: Tauri binary entrypoint.
-- `app/app_state.rs`: SQLite connection and schema initialization.
+- `app/app_state.rs`: SQLite connection and schema initialization, some shared state objects.
 - `tasks/model.rs`: Rust task, prerequisite, and planner position models.
 - `tasks/commands.rs`: Tauri commands for task CRUD, prerequisite links, and planner positions.
 - `core/persistent/in_mem/`: legacy in-memory persistence reference.
