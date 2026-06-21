@@ -8,14 +8,20 @@ import {AddTaskDialog} from "@/src/components/common/dialogs/AddTaskDialog.tsx";
 import {TaskPlannerCanvasContextMenu} from "./TaskPlannerCanvasContextMenu.tsx";
 import {TaskPlannerLinkContextMenu} from "./TaskPlannerLinkContextMenu.tsx";
 import {TaskPlannerLinks} from "./TaskPlannerLinks.tsx";
+import {TaskPlannerModeControls} from "./TaskPlannerModeControls.tsx";
 import {TaskPlannerNode} from "./TaskPlannerNode.tsx";
 import {TaskPlannerNodeContextMenu} from "./TaskPlannerNodeContextMenu.tsx";
+import {TaskPlannerTaskCard} from "./TaskPlannerTaskCard.tsx";
 import {TaskPlannerZoomControls} from "./TaskPlannerZoomControls.tsx";
-import {getDefaultPosition, GRID_LEFT, GRID_TOP, GRID_X, GRID_Y, NODE_HEIGHT, NODE_WIDTH,} from "./taskPlannerGeometry.ts";
+import {getDefaultPosition, GRID_LEFT, GRID_TOP, NODE_HEIGHT, NODE_WIDTH,} from "./taskPlannerGeometry.ts";
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 1.8;
 const ZOOM_STEP = 0.1;
+const AUTO_SORT_GRID_X = 360;
+const AUTO_SORT_GRID_Y = 190;
+
+type PlannerMode = "view" | "edit";
 
 type DraggingNode = {
     taskId: string;
@@ -72,6 +78,11 @@ type PlannerContextMenu =
     taskId: string;
 };
 
+type ActiveTaskCard = {
+    taskId: string;
+    position: NodePosition;
+};
+
 export function TaskPlannerView({
                                     tasks,
                                     selectedTaskId,
@@ -81,6 +92,7 @@ export function TaskPlannerView({
                                 }: TaskPlannerViewProps) {
     const canvasRef = useRef<HTMLDivElement | null>(null);
     const graphViewportRef = useRef<HTMLDivElement | null>(null);
+    const didDragNodeRef = useRef(false);
     const [draggingNode, setDraggingNode] = useState<DraggingNode | null>(null);
     const [panningCanvas, setPanningCanvas] = useState<PanningCanvas | null>(null);
     const [contextMenu, setContextMenu] = useState<PlannerContextMenu | null>(null);
@@ -89,6 +101,8 @@ export function TaskPlannerView({
     const [taskDescription, setTaskDescription] = useState("");
     const [taskStatus, setTaskStatus] = useState<TaskStatus>("OPEN");
     const [linkLabelDraft, setLinkLabelDraft] = useState("");
+    const [plannerMode, setPlannerMode] = useState<PlannerMode>("view");
+    const [activeTaskCard, setActiveTaskCard] = useState<ActiveTaskCard | null>(null);
     const [zoom, setZoom] = useState(1);
     const {
         activeConnector,
@@ -160,6 +174,21 @@ export function TaskPlannerView({
     }, [contextMenu]);
 
     useEffect(() => {
+        if (!activeTaskCard) {
+            return;
+        }
+
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === "Escape") {
+                setActiveTaskCard(null);
+            }
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [activeTaskCard]);
+
+    useEffect(() => {
         if (!selectedTaskId || !positions[selectedTaskId]) {
             return;
         }
@@ -224,6 +253,18 @@ export function TaskPlannerView({
         setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(nextZoom.toFixed(2)))));
     }
 
+    function handlePlannerModeChange(mode: PlannerMode) {
+        setPlannerMode(mode);
+        closeContextMenu();
+        setActiveTaskCard(null);
+
+        if (mode === "view") {
+            cancelConnector();
+            setDraggingNode(null);
+            setPanningCanvas(null);
+        }
+    }
+
     function resetTaskForm() {
         setTaskTitle("");
         setTaskDescription("");
@@ -264,6 +305,12 @@ export function TaskPlannerView({
 
     function handleContextMenu(event: MouseEvent<HTMLDivElement>) {
         event.preventDefault();
+
+        if (plannerMode !== "edit") {
+            closeContextMenu();
+            return;
+        }
+
         clearFeedback();
         setContextMenu({
             kind: "canvas",
@@ -274,6 +321,11 @@ export function TaskPlannerView({
     function handleNodeContextMenu(event: MouseEvent<HTMLElement>, taskId: string) {
         event.preventDefault();
         event.stopPropagation();
+
+        if (plannerMode !== "edit") {
+            return;
+        }
+
         clearFeedback();
         setContextMenu({
             kind: "node",
@@ -283,17 +335,41 @@ export function TaskPlannerView({
     }
 
     function handleNodePointerDown(event: PointerEvent, taskId: string) {
-        if (event.button !== 0 || activeConnector) {
+        if (plannerMode !== "edit" || event.button !== 0 || activeConnector) {
             return;
         }
 
         closeContextMenu();
         clearFeedback();
         event.currentTarget.setPointerCapture(event.pointerId);
+        didDragNodeRef.current = false;
         setDraggingNode({
             taskId,
             startPointer: getCanvasPoint(event),
             startPosition: positions[taskId],
+        });
+    }
+
+    function handleNodeClick(taskId: string) {
+        if (didDragNodeRef.current) {
+            didDragNodeRef.current = false;
+            return;
+        }
+
+        closeContextMenu();
+        clearFeedback();
+        const position = positions[taskId];
+
+        if (!position) {
+            return;
+        }
+
+        setActiveTaskCard({
+            taskId,
+            position: {
+                x: position.x + NODE_WIDTH + 18,
+                y: position.y,
+            },
         });
     }
 
@@ -321,6 +397,13 @@ export function TaskPlannerView({
         const point = getCanvasPoint(event);
 
         if (draggingNode) {
+            if (
+                Math.abs(point.x - draggingNode.startPointer.x) > 3 ||
+                Math.abs(point.y - draggingNode.startPointer.y) > 3
+            ) {
+                didDragNodeRef.current = true;
+            }
+
             moveNode(draggingNode.taskId, {
                 x: Math.max(12, draggingNode.startPosition.x + point.x - draggingNode.startPointer.x),
                 y: Math.max(12, draggingNode.startPosition.y + point.y - draggingNode.startPointer.y),
@@ -361,6 +444,10 @@ export function TaskPlannerView({
     }
 
     function handleConnectorPointerDown(event: PointerEvent, taskId: string) {
+        if (plannerMode !== "edit") {
+            return;
+        }
+
         event.stopPropagation();
         closeContextMenu();
         clearFeedback();
@@ -369,7 +456,7 @@ export function TaskPlannerView({
     }
 
     function handleConnectorTargetPointerUp(event: PointerEvent, taskId: string) {
-        if (!activeConnector) {
+        if (plannerMode !== "edit" || !activeConnector) {
             return;
         }
 
@@ -381,6 +468,10 @@ export function TaskPlannerView({
         link: { prerequisiteTaskId: string; taskId: string; label: string | null },
         position: NodePosition,
     ) {
+        if (plannerMode !== "edit") {
+            return;
+        }
+
         clearFeedback();
         setLinkLabelDraft(link.label ?? "");
         setContextMenu({
@@ -489,8 +580,8 @@ export function TaskPlannerView({
                     )
                     .forEach((taskId, rowIndex) => {
                         sortedPositions[taskId] = {
-                            x: GRID_LEFT + layer * GRID_X,
-                            y: GRID_TOP + rowIndex * GRID_Y,
+                            x: GRID_LEFT + layer * AUTO_SORT_GRID_X,
+                            y: GRID_TOP + rowIndex * AUTO_SORT_GRID_Y,
                         };
                     });
             });
@@ -499,6 +590,10 @@ export function TaskPlannerView({
     }
 
     async function handleAutoSortPlanner() {
+        if (plannerMode !== "edit") {
+            return;
+        }
+
         closeContextMenu();
         clearFeedback();
 
@@ -546,11 +641,12 @@ export function TaskPlannerView({
             target instanceof Element &&
             Boolean(
                 target.closest(
-                    ".task-planner-node, .task-planner-zoom-controls, .task-planner-context-menu, .task-planner-link-label",
+                    ".task-planner-node, .task-planner-floating-controls, .task-planner-context-menu, .task-planner-link-label, .task-planner-task-card",
                 ),
             );
 
         closeContextMenu();
+        setActiveTaskCard(null);
 
         if (startedOnInteractiveElement || activeConnector || draggingNode) {
             return;
@@ -583,14 +679,17 @@ export function TaskPlannerView({
     return (
         <div className="task-planner-canvas-shell">
             {feedback && <div className="task-planner-feedback">{feedback}</div>}
-            <TaskPlannerZoomControls
-                canZoomIn={zoom < MAX_ZOOM}
-                canZoomOut={zoom > MIN_ZOOM}
-                zoom={zoom}
-                onResetZoom={() => updateZoom(1)}
-                onZoomIn={() => updateZoom(zoom + ZOOM_STEP)}
-                onZoomOut={() => updateZoom(zoom - ZOOM_STEP)}
-            />
+            <div className="task-planner-floating-controls">
+                <TaskPlannerModeControls mode={plannerMode} onModeChange={handlePlannerModeChange}/>
+                <TaskPlannerZoomControls
+                    canZoomIn={zoom < MAX_ZOOM}
+                    canZoomOut={zoom > MIN_ZOOM}
+                    zoom={zoom}
+                    onResetZoom={() => updateZoom(1)}
+                    onZoomIn={() => updateZoom(zoom + ZOOM_STEP)}
+                    onZoomOut={() => updateZoom(zoom - ZOOM_STEP)}
+                />
+            </div>
             <div
                 className={`task-planner-canvas${panningCanvas ? " panning" : ""}`}
                 ref={canvasRef}
@@ -619,6 +718,7 @@ export function TaskPlannerView({
                         <TaskPlannerLinks
                             activeConnector={activeConnector}
                             canvasSize={canvasSize}
+                            isEditMode={plannerMode === "edit"}
                             links={visiblePrerequisiteLinks}
                             onOpenLinkMenu={handleOpenLinkMenu}
                             positions={positions}
@@ -627,11 +727,13 @@ export function TaskPlannerView({
                         {tasks.map((task) => (
                             <TaskPlannerNode
                                 key={task.id}
+                                isEditMode={plannerMode === "edit"}
                                 isDragging={draggingNode?.taskId === task.id}
                                 isSelected={selectedTaskId === task.id}
                                 position={positions[task.id]}
                                 task={task}
                                 onConnectorPointerDown={handleConnectorPointerDown}
+                                onNodeClick={handleNodeClick}
                                 onNodeContextMenu={handleNodeContextMenu}
                                 onNodePointerDown={handleNodePointerDown}
                                 onNodePointerUp={handleConnectorTargetPointerUp}
@@ -687,6 +789,19 @@ export function TaskPlannerView({
                                 onSaveLabel={() => {
                                     handleSaveLinkLabel().catch(console.error);
                                 }}
+                            />
+                        )}
+
+                        {activeTaskCard && (
+                            <TaskPlannerTaskCard
+                                position={activeTaskCard.position}
+                                prerequisiteLinks={visiblePrerequisiteLinks}
+                                task={
+                                    tasks.find((task) => task.id === activeTaskCard.taskId) ??
+                                    tasks[0]
+                                }
+                                tasks={tasks}
+                                onClose={() => setActiveTaskCard(null)}
                             />
                         )}
                     </div>

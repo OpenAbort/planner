@@ -8,11 +8,13 @@ import type { NodePosition } from "./states/taskPlannerState.ts";
 import { NODE_HEIGHT, NODE_WIDTH } from "./taskPlannerGeometry.ts";
 
 type TaskPlannerNodeProps = {
+  isEditMode: boolean;
   isDragging: boolean;
   isSelected: boolean;
   position: NodePosition;
   task: Task;
   onConnectorPointerDown: (event: PointerEvent, taskId: string) => void;
+  onNodeClick: (taskId: string) => void;
   onNodeContextMenu: (event: MouseEvent<HTMLElement>, taskId: string) => void;
   onNodePointerDown: (event: PointerEvent, taskId: string) => void;
   onNodePointerUp: (event: PointerEvent, taskId: string) => void;
@@ -20,11 +22,13 @@ type TaskPlannerNodeProps = {
 };
 
 export function TaskPlannerNode({
+  isEditMode,
   isDragging,
   isSelected,
   position,
   task,
   onConnectorPointerDown,
+  onNodeClick,
   onNodeContextMenu,
   onNodePointerDown,
   onNodePointerUp,
@@ -84,6 +88,10 @@ export function TaskPlannerNode({
         onNodePointerDown(event, task.id);
       }}
       onPointerUp={(event) => onNodePointerUp(event, task.id)}
+      onClick={(event) => {
+        event.stopPropagation();
+        onNodeClick(task.id);
+      }}
       onContextMenu={(event) => onNodeContextMenu(event, task.id)}
     >
       <div className="task-planner-node-title">{task.title}</div>
@@ -137,15 +145,17 @@ export function TaskPlannerNode({
           </div>
         )}
       </div>
-      <button
-        className="task-planner-connector"
-        type="button"
-        aria-label={`Connect ${task.title} as a prerequisite`}
-        title="Drag to another task to create a prerequisite"
-        onPointerDown={(event) => onConnectorPointerDown(event, task.id)}
-      >
-        <GitPullRequestArrow className="size-4" />
-      </button>
+      {isEditMode && (
+        <button
+          className="task-planner-connector"
+          type="button"
+          aria-label={`Connect ${task.title} as a prerequisite`}
+          title="Drag to another task to create a prerequisite"
+          onPointerDown={(event) => onConnectorPointerDown(event, task.id)}
+        >
+          <GitPullRequestArrow className="size-4" />
+        </button>
+      )}
     </article>
   );
 }

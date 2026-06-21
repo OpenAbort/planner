@@ -16,6 +16,7 @@ type TaskPlannerLinksProps = {
     width: number;
     height: number;
   };
+  isEditMode: boolean;
   links: PlannerLink[];
   onOpenLinkMenu: (link: PlannerLink, position: NodePosition) => void;
   positions: Record<string, NodePosition>;
@@ -24,6 +25,7 @@ type TaskPlannerLinksProps = {
 export function TaskPlannerLinks({
   activeConnector,
   canvasSize,
+  isEditMode,
   links,
   onOpenLinkMenu,
   positions,
@@ -55,7 +57,9 @@ export function TaskPlannerLinks({
         };
         const angle =
           (Math.atan2(target.y - source.y, target.x - source.x) * 180) / Math.PI;
+        const hasLabel = Boolean(link.label?.trim());
         const labelText = link.label?.trim() || "Link";
+        const shouldShowLabel = isEditMode || hasLabel;
 
         return (
           <g key={`${link.prerequisiteTaskId}-${link.taskId}`}>
@@ -66,43 +70,51 @@ export function TaskPlannerLinks({
               y2={target.y}
               markerEnd="url(#planner-arrow)"
             />
-            <line
-              className="task-planner-link-hit-target"
-              x1={source.x}
-              y1={source.y}
-              x2={target.x}
-              y2={target.y}
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onOpenLinkMenu(link, midpoint);
-              }}
-            />
-            <foreignObject
-              className="task-planner-link-label-wrap"
-              x={midpoint.x - 54}
-              y={midpoint.y - 15}
-              width="108"
-              height="30"
-              transform={`rotate(${angle} ${midpoint.x} ${midpoint.y})`}
-            >
-              <button
-                className={`task-planner-link-label${link.label?.trim() ? "" : " empty"}`}
-                type="button"
-                title={link.label?.trim() ? link.label : "Edit connection label"}
+            {isEditMode && (
+              <line
+                className="task-planner-link-hit-target"
+                x1={source.x}
+                y1={source.y}
+                x2={target.x}
+                y2={target.y}
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
                   onOpenLinkMenu(link, midpoint);
                 }}
+              />
+            )}
+            {shouldShowLabel && (
+              <foreignObject
+                className="task-planner-link-label-wrap"
+                x={midpoint.x - 54}
+                y={midpoint.y - 15}
+                width="108"
+                height="30"
+                transform={`rotate(${angle} ${midpoint.x} ${midpoint.y})`}
               >
-                {labelText}
-              </button>
-            </foreignObject>
+                {isEditMode ? (
+                  <button
+                    className={`task-planner-link-label${hasLabel ? "" : " empty"}`}
+                    type="button"
+                    title={hasLabel ? link.label ?? "" : "Edit connection label"}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      onOpenLinkMenu(link, midpoint);
+                    }}
+                  >
+                    {labelText}
+                  </button>
+                ) : (
+                  <span className="task-planner-link-label readonly">{labelText}</span>
+                )}
+              </foreignObject>
+            )}
           </g>
         );
       })}
-      {activeConnector && (
+      {isEditMode && activeConnector && (
         <line
           className="active"
           x1={getConnectorPoint(positions[activeConnector.prerequisiteTaskId]).x}
