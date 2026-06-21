@@ -11,6 +11,8 @@ type AddTaskParams = {
     title: string;
     description: string;
     status: TaskStatus;
+    startDate?: string | null;
+    dueDate?: string | null;
 };
 
 type UpdateTaskParams = {
@@ -18,6 +20,8 @@ type UpdateTaskParams = {
     title: string;
     description: string;
     status: TaskStatus;
+    startDate: string | null;
+    dueDate: string | null;
 };
 
 export default function useTasks({limit, offset}: UseTasksParams) {
@@ -46,11 +50,13 @@ export default function useTasks({limit, offset}: UseTasksParams) {
         }
     }, [limit, offset]);
 
-    const addTask = useCallback(async ({title, description, status}: AddTaskParams) => {
+    const addTask = useCallback(async ({title, description, status, startDate = null, dueDate = null}: AddTaskParams) => {
         const createdTask = await invoke<Task>("add_task", {
             title,
             description,
             status,
+            startDate,
+            dueDate,
         });
 
         setTasks((prev) => [createdTask, ...prev]);
@@ -75,12 +81,14 @@ export default function useTasks({limit, offset}: UseTasksParams) {
         return updatedTask;
     }, []);
 
-    const updateTask = useCallback(async ({id, title, description, status}: UpdateTaskParams) => {
+    const updateTask = useCallback(async ({id, title, description, status, startDate, dueDate}: UpdateTaskParams) => {
         const updatedTask = await invoke<Task | null>("update_task", {
             id,
             title,
             description,
             status,
+            startDate,
+            dueDate,
         });
 
         if (updatedTask) {

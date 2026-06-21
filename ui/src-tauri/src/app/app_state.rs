@@ -31,6 +31,8 @@ fn initialize_schema(connection: &Connection) -> rusqlite::Result<()> {
             title TEXT NOT NULL,
             description TEXT NOT NULL,
             status TEXT NOT NULL,
+            start_date TEXT,
+            due_date TEXT,
             created_at INTEGER NOT NULL DEFAULT (unixepoch())
         );
 
@@ -58,6 +60,25 @@ fn initialize_schema(connection: &Connection) -> rusqlite::Result<()> {
         );
         ",
     )?;
+
+    let task_columns = connection
+        .prepare("PRAGMA table_info(tasks)")?
+        .query_map([], |row| row.get::<_, String>(1))?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if !task_columns
+        .iter()
+        .any(|column_name| column_name == "start_date")
+    {
+        connection.execute("ALTER TABLE tasks ADD COLUMN start_date TEXT", [])?;
+    }
+
+    if !task_columns
+        .iter()
+        .any(|column_name| column_name == "due_date")
+    {
+        connection.execute("ALTER TABLE tasks ADD COLUMN due_date TEXT", [])?;
+    }
 
     let has_prerequisite_label = connection
         .prepare("PRAGMA table_info(task_prerequisites)")?

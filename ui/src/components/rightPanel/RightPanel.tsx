@@ -3,9 +3,10 @@ import type { Task, TaskStatus } from "@/src/types/task.ts";
 import { useTaskSelectionState } from "@/src/states/taskSelectionState.ts";
 import { TaskDetailsView } from "./TaskDetailsView.tsx";
 import { TaskPlannerView } from "./TaskPlannerView.tsx";
+import { TimelineView } from "./timeline/TimelineView.tsx";
 import { cn } from "@/lib/utils.ts";
 
-type RightPanelTab = "details" | "planner";
+type RightPanelTab = "details" | "planner" | "timeline";
 
 type RightPanelProps = {
   tasks: Task[];
@@ -13,12 +14,16 @@ type RightPanelProps = {
     title: string,
     description: string,
     status: TaskStatus,
+    startDate: string | null,
+    dueDate: string | null,
   ) => Promise<Task>;
   onUpdateTask: (task: {
     id: string;
     title: string;
     description: string;
     status: TaskStatus;
+    startDate: string | null;
+    dueDate: string | null;
   }) => Promise<Task | null>;
 };
 
@@ -30,13 +35,18 @@ export function RightPanel({ tasks, onAddTask, onUpdateTask }: RightPanelProps) 
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
   );
+  const titleByTab: Record<RightPanelTab, string> = {
+    details: "Details",
+    planner: "Task Planner",
+    timeline: "Timeline View",
+  };
 
   return (
     <section className="detail-panel" aria-label="Task workspace">
       <header className="right-panel-header">
         <div>
           <p className="eyebrow">Workspace</p>
-          <h1>{activeTab === "details" ? "Details" : "Task Planner"}</h1>
+          <h1>{titleByTab[activeTab]}</h1>
         </div>
         <div className="right-panel-tabs" role="tablist" aria-label="Workspace tabs">
           <button
@@ -57,12 +67,22 @@ export function RightPanel({ tasks, onAddTask, onUpdateTask }: RightPanelProps) 
           >
             Task Planner
           </button>
+          <button
+            className={cn("right-panel-tab", activeTab === "timeline" && "active")}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "timeline"}
+            onClick={() => setActiveTab("timeline")}
+          >
+            Timeline View
+          </button>
         </div>
       </header>
 
-      {activeTab === "details" ? (
+      {activeTab === "details" && (
         <TaskDetailsView task={selectedTask} onUpdateTask={onUpdateTask} />
-      ) : (
+      )}
+      {activeTab === "planner" && (
         <TaskPlannerView
           tasks={tasks}
           selectedTaskId={selectedTaskId}
@@ -74,6 +94,7 @@ export function RightPanel({ tasks, onAddTask, onUpdateTask }: RightPanelProps) 
           }}
         />
       )}
+      {activeTab === "timeline" && <TimelineView tasks={tasks} />}
     </section>
   );
 }

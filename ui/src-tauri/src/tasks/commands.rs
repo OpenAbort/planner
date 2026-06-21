@@ -10,18 +10,38 @@ pub fn add_task(
     title: String,
     description: String,
     status: String,
+    start_date: Option<String>,
+    due_date: Option<String>,
     container: State<ApplicationContainer>,
 ) -> Result<Task, String> {
     if title.trim().is_empty() {
         return Err("Title cannot be empty".to_string());
     }
 
-    let task = Task::new(nanoid!(), title, description, status);
+    let schedule = validate_task_schedule(start_date, due_date)?;
+    let task = Task::new(
+        nanoid!(),
+        title,
+        description,
+        status,
+        schedule.start_date,
+        schedule.due_date,
+    );
     let db = container.database();
 
     db.execute(
-        "INSERT INTO tasks (id, title, description, status) VALUES (?1, ?2, ?3, ?4)",
-        params![&task.id, &task.title, &task.description, &task.status],
+        "
+        INSERT INTO tasks (id, title, description, status, start_date, due_date)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+        ",
+        params![
+            &task.id,
+            &task.title,
+            &task.description,
+            &task.status,
+            &task.start_date,
+            &task.due_date
+        ],
     )
     .map_err(|error| error.to_string())?;
 
@@ -48,7 +68,7 @@ pub fn list_tasks(
     let mut statement = db
         .prepare(
             "
-            SELECT id, title, description, status
+            SELECT id, title, description, status, start_date, due_date
             FROM tasks
             ORDER BY created_at DESC, rowid DESC
             LIMIT ?1 OFFSET ?2
@@ -88,21 +108,31 @@ pub fn update_task(
     title: String,
     description: String,
     status: String,
+    start_date: Option<String>,
+    due_date: Option<String>,
     container: State<ApplicationContainer>,
 ) -> Result<Option<Task>, String> {
     if title.trim().is_empty() {
         return Err("Title cannot be empty".to_string());
     }
 
+    let schedule = validate_task_schedule(start_date, due_date)?;
     let db = container.database();
 
     db.execute(
         "
         UPDATE tasks
-        SET title = ?1, description = ?2, status = ?3
-        WHERE id = ?4
+        SET title = ?1, description = ?2, status = ?3, start_date = ?4, due_date = ?5
+        WHERE id = ?6
         ",
-        params![&title, &description, &status, &id],
+        params![
+            &title,
+            &description,
+            &status,
+            &schedule.start_date,
+            &schedule.due_date,
+            &id
+        ],
     )
     .map_err(|error| error.to_string())?;
 
@@ -381,7 +411,7 @@ fn find_task(connection: &Connection, id: &str) -> rusqlite::Result<Option<Task>
     connection
         .query_row(
             "
-            SELECT id, title, description, status
+            SELECT id, title, description, status, start_date, due_date
             FROM tasks
             WHERE id = ?1
             ",
@@ -412,7 +442,65 @@ fn row_to_task(row: &rusqlite::Row<'_>) -> rusqlite::Result<Task> {
         title: row.get(1)?,
         description: row.get(2)?,
         status: row.get(3)?,
+        start_date: row.get(4)?,
+        due_date: row.get(5)?,
     })
+}
+
+struct ValidatedSchedule {
+    start_date: Option<String>,
+    due_date: Option<String>,
+}
+
+fn validate_task_schedule(
+    start_date: Option<String>,
+    due_date: Option<String>,
+) -> Result<ValidatedSchedule, String> {
+    let start_date = normalize_datetime_local(start_date, "Start date")?;
+    let due_date = normalize_datetime_local(due_date, "Due date")?;
+
+    if let (Some(start_date), Some(due_date)) = (&start_date, &due_date) {
+        if due_date < start_date {
+            return Err("Due date must be on or after start date.".to_string());
+        }
+    }
+
+    Ok(ValidatedSchedule {
+        start_date,
+        due_date,
+    })
+}
+
+fn normalize_datetime_local(value: Option<String>, label: &str) -> Result<Option<String>, String> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+
+    let trimmed_value = value.trim();
+
+    if trimmed_value.is_empty() {
+        return Ok(None);
+    }
+
+    if is_datetime_local(trimmed_value) {
+        Ok(Some(trimmed_value.to_string()))
+    } else {
+        Err(format!("{label} must use YYYY-MM-DDTHH:mm format."))
+    }
+}
+
+fn is_datetime_local(value: &str) -> bool {
+    let bytes = value.as_bytes();
+
+    value.len() == 16
+        && bytes[4] == b'-'
+        && bytes[7] == b'-'
+        && bytes[10] == b'T'
+        && bytes[13] == b':'
+        && bytes
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| matches!(index, 4 | 7 | 10 | 13) || byte.is_ascii_digit())
 }
 
 fn row_to_task_prerequisite(row: &rusqlite::Row<'_>) -> rusqlite::Result<TaskPrerequisite> {

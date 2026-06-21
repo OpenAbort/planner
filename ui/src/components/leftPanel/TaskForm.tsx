@@ -1,11 +1,17 @@
-import { SubmitEvent, useState } from "react";
+import { FormEvent, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import type { Task, TaskStatus } from "../../types/task.ts";
 import { AddTaskDialog } from "../common/dialogs/AddTaskDialog.tsx";
 
 type TaskFormProps = {
-  onAddTask: (title: string, description: string, status: TaskStatus) => void | Promise<Task>;
+  onAddTask: (
+    title: string,
+    description: string,
+    status: TaskStatus,
+    startDate: string | null,
+    dueDate: string | null,
+  ) => void | Promise<Task>;
 };
 
 export function TaskForm({ onAddTask }: TaskFormProps) {
@@ -13,8 +19,11 @@ export function TaskForm({ onAddTask }: TaskFormProps) {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [taskStatus, setTaskStatus] = useState<TaskStatus>("OPEN");
+  const [taskStartDate, setTaskStartDate] = useState("");
+  const [taskDueDate, setTaskDueDate] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
 
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const title = taskTitle.trim();
@@ -22,10 +31,24 @@ export function TaskForm({ onAddTask }: TaskFormProps) {
       return;
     }
 
-    onAddTask(title, taskDescription.trim(), taskStatus);
+    if (taskStartDate && taskDueDate && taskDueDate < taskStartDate) {
+      setFormError("Due date must be on or after start date.");
+      return;
+    }
+
+    onAddTask(
+      title,
+      taskDescription.trim(),
+      taskStatus,
+      taskStartDate || null,
+      taskDueDate || null,
+    );
     setTaskTitle("");
     setTaskDescription("");
     setTaskStatus("OPEN");
+    setTaskStartDate("");
+    setTaskDueDate("");
+    setFormError(null);
     setIsOpen(false);
   }
 
@@ -34,6 +57,9 @@ export function TaskForm({ onAddTask }: TaskFormProps) {
     setTaskTitle("");
     setTaskDescription("");
     setTaskStatus("OPEN");
+    setTaskStartDate("");
+    setTaskDueDate("");
+    setFormError(null);
   }
 
   return (
@@ -52,9 +78,20 @@ export function TaskForm({ onAddTask }: TaskFormProps) {
           taskTitle={taskTitle}
           taskDescription={taskDescription}
           taskStatus={taskStatus}
+          taskStartDate={taskStartDate}
+          taskDueDate={taskDueDate}
+          formError={formError}
           onClose={handleClose}
           onSubmit={handleSubmit}
           onTaskDescriptionChange={setTaskDescription}
+          onTaskDueDateChange={(value) => {
+            setTaskDueDate(value);
+            setFormError(null);
+          }}
+          onTaskStartDateChange={(value) => {
+            setTaskStartDate(value);
+            setFormError(null);
+          }}
           onTaskStatusChange={setTaskStatus}
           onTaskTitleChange={setTaskTitle}
         />

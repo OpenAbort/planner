@@ -6,15 +6,28 @@ pub struct Task {
     pub title: String,
     pub description: String,
     pub status: String,
+    #[serde(rename = "startDate")]
+    pub start_date: Option<String>,
+    #[serde(rename = "dueDate")]
+    pub due_date: Option<String>,
 }
 
 impl Task {
-    pub fn new(id: String, title: String, description: String, status: String) -> Self {
+    pub fn new(
+        id: String,
+        title: String,
+        description: String,
+        status: String,
+        start_date: Option<String>,
+        due_date: Option<String>,
+    ) -> Self {
         Self {
             id,
             title,
             description,
             status,
+            start_date,
+            due_date,
         }
     }
 }

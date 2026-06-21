@@ -12,6 +12,8 @@ export type Task = {
     title: string;
     description: string;
     status: TaskStatus;
+    startDate: string | null;
+    dueDate: string | null;
 };
 
 export type TaskPrerequisiteLink = {

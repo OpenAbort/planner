@@ -311,6 +311,12 @@ h1 {
     resize: vertical;
 }
 
+.task-details-date-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
 .task-details-input:focus,
 .task-details-textarea:focus {
     border-color: #000000;
@@ -984,6 +990,204 @@ h1 {
     padding: 8px 9px 4px;
 }
 
+.timeline-view {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.timeline-summary {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.timeline-summary span {
+    border: 1px solid #dbe3ef;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    padding: 7px 10px;
+}
+
+.timeline-summary span.conflict {
+    border-color: #fca5a5;
+    background: #fff1f2;
+    color: #be123c;
+}
+
+.timeline-canvas {
+    position: relative;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: auto;
+    border: 1px solid #dbe3ef;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.timeline-content {
+    position: relative;
+    min-width: 100%;
+}
+
+.timeline-past-region,
+.timeline-future-region,
+.timeline-risk-region {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.timeline-past-region {
+    left: 0;
+    background: rgba(254, 226, 226, 0.42);
+}
+
+.timeline-future-region {
+    background: rgba(220, 252, 231, 0.34);
+}
+
+.timeline-risk-region {
+    z-index: 1;
+    background: rgba(254, 240, 138, 0.34);
+}
+
+.timeline-axis {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+}
+
+.timeline-tick {
+    position: absolute;
+    top: 20px;
+    width: 1px;
+    background: rgba(148, 163, 184, 0.36);
+}
+
+.timeline-tick span {
+    position: absolute;
+    top: 0;
+    left: 7px;
+    width: max-content;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 800;
+    transform: translateY(-2px);
+}
+
+.timeline-now-line {
+    position: absolute;
+    top: 20px;
+    z-index: 4;
+    width: 2px;
+    background: #0f172a;
+    pointer-events: none;
+}
+
+.timeline-now-line span {
+    position: absolute;
+    top: -2px;
+    left: 7px;
+    border-radius: 999px;
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    padding: 4px 6px;
+    text-transform: uppercase;
+}
+
+.timeline-task-bar {
+    position: absolute;
+    z-index: 3;
+    display: flex;
+    height: 30px;
+    min-width: 0;
+    align-items: center;
+    gap: 7px;
+    overflow: hidden;
+    border: 1px solid #93c5fd;
+    border-radius: 8px;
+    background: #eff6ff;
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 0 10px;
+    box-shadow: 0 7px 18px rgba(15, 23, 42, 0.09);
+}
+
+.timeline-task-bar.milestone {
+    border-color: #a7f3d0;
+    background: #ecfdf5;
+}
+
+.timeline-task-bar.unscheduled {
+    border-style: dashed;
+    border-color: #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+}
+
+.timeline-task-bar.conflict {
+    border-color: #f97316;
+    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2),
+    0 7px 18px rgba(15, 23, 42, 0.09);
+}
+
+.timeline-task-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.timeline-task-status-dot {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+}
+
+.timeline-conflict-icon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 auto;
+    color: #c2410c;
+}
+
+.timeline-unscheduled-rule {
+    position: absolute;
+    right: 24px;
+    left: 24px;
+    z-index: 2;
+    border-top: 1px dashed #cbd5e1;
+}
+
+.timeline-unscheduled-label {
+    position: absolute;
+    left: 32px;
+    z-index: 3;
+    background: rgba(255, 255, 255, 0.86);
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0;
+    line-height: 1;
+    padding: 0 7px;
+    text-transform: uppercase;
+}
+
 @media (max-width: 720px) {
     .app-shell {
         display: grid !important;
@@ -1025,6 +1229,14 @@ h1 {
     }
 
     .task-planner-canvas {
+        min-height: 520px;
+    }
+
+    .task-details-date-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .timeline-canvas {
         min-height: 520px;
     }
 }

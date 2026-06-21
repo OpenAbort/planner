@@ -8,10 +8,15 @@ import { taskStatusOptions } from "../taskStatus.tsx";
 type AddTaskDialogProps = {
   taskTitle: string;
   taskDescription: string;
+  taskDueDate: string;
+  taskStartDate: string;
   taskStatus: TaskStatus;
+  formError?: string | null;
   onClose: () => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
   onTaskDescriptionChange: (description: string) => void;
+  onTaskDueDateChange: (dueDate: string) => void;
+  onTaskStartDateChange: (startDate: string) => void;
   onTaskStatusChange: (status: TaskStatus) => void;
   onTaskTitleChange: (title: string) => void;
 };
@@ -19,10 +24,15 @@ type AddTaskDialogProps = {
 export function AddTaskDialog({
   taskTitle,
   taskDescription,
+  taskDueDate,
+  taskStartDate,
   taskStatus,
+  formError,
   onClose,
   onSubmit,
   onTaskDescriptionChange,
+  onTaskDueDateChange,
+  onTaskStartDateChange,
   onTaskStatusChange,
   onTaskTitleChange,
 }: AddTaskDialogProps) {
@@ -84,6 +94,34 @@ export function AddTaskDialog({
           />
         </label>
 
+        <div className="mb-3 grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-slate-600">
+              Start
+            </span>
+            <input
+              className="min-h-9 w-full min-w-0 rounded-lg border border-[#ccd6e3] bg-white px-3 py-1.5 text-[#172033] outline-none focus:border-black focus:shadow-[0_0_0_2px_rgba(0,0,0,0.14)]"
+              aria-label="New task start date"
+              type="datetime-local"
+              value={taskStartDate}
+              onChange={(event) => onTaskStartDateChange(event.currentTarget.value)}
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-slate-600">
+              Due
+            </span>
+            <input
+              className="min-h-9 w-full min-w-0 rounded-lg border border-[#ccd6e3] bg-white px-3 py-1.5 text-[#172033] outline-none focus:border-black focus:shadow-[0_0_0_2px_rgba(0,0,0,0.14)]"
+              aria-label="New task due date"
+              type="datetime-local"
+              value={taskDueDate}
+              onChange={(event) => onTaskDueDateChange(event.currentTarget.value)}
+            />
+          </label>
+        </div>
+
         <fieldset className="mb-4 grid gap-2 border-0 p-0">
           <legend className="mb-1.5 text-xs font-semibold text-slate-600">
             Status
@@ -112,6 +150,10 @@ export function AddTaskDialog({
             })}
           </div>
         </fieldset>
+
+        {formError && (
+          <p className="mb-3 mt-0 text-sm font-semibold text-red-600">{formError}</p>
+        )}
 
         <Button
           className="h-9 w-full rounded-lg bg-primary px-3.5 font-bold text-white hover:bg-primary/70"

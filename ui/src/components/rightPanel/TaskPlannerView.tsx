@@ -68,12 +68,16 @@ type TaskPlannerViewProps = {
         title: string,
         description: string,
         status: TaskStatus,
+        startDate: string | null,
+        dueDate: string | null,
     ) => Promise<Task>;
     onUpdateTask: (task: {
         id: string;
         title: string;
         description: string;
         status: TaskStatus;
+        startDate: string | null;
+        dueDate: string | null;
     }) => Promise<Task | null>;
     onRequestTaskDetails: (taskId: string) => void;
 };
@@ -122,6 +126,9 @@ export function TaskPlannerView({
     const [taskTitle, setTaskTitle] = useState("");
     const [taskDescription, setTaskDescription] = useState("");
     const [taskStatus, setTaskStatus] = useState<TaskStatus>("OPEN");
+    const [taskStartDate, setTaskStartDate] = useState("");
+    const [taskDueDate, setTaskDueDate] = useState("");
+    const [taskFormError, setTaskFormError] = useState<string | null>(null);
     const [linkLabelDraft, setLinkLabelDraft] = useState("");
     const [plannerMode, setPlannerMode] = useState<PlannerMode>("view");
     const [activeTaskCard, setActiveTaskCard] = useState<ActiveTaskCard | null>(null);
@@ -322,6 +329,9 @@ export function TaskPlannerView({
         setTaskTitle("");
         setTaskDescription("");
         setTaskStatus("OPEN");
+        setTaskStartDate("");
+        setTaskDueDate("");
+        setTaskFormError(null);
     }
 
     function closeAddTaskDialog() {
@@ -338,10 +348,17 @@ export function TaskPlannerView({
             return;
         }
 
+        if (taskStartDate && taskDueDate && taskDueDate < taskStartDate) {
+            setTaskFormError("Due date must be on or after start date.");
+            return;
+        }
+
         const createdTask = await onAddTask(
             title,
             taskDescription.trim(),
             taskStatus,
+            taskStartDate || null,
+            taskDueDate || null,
         );
 
         await saveNodePosition(createdTask.id, {
@@ -647,6 +664,8 @@ export function TaskPlannerView({
             title: task.title,
             description: task.description,
             status,
+            startDate: task.startDate,
+            dueDate: task.dueDate,
         }).catch(console.error);
     }
 
@@ -991,12 +1010,23 @@ export function TaskPlannerView({
                 <AddTaskDialog
                     taskTitle={taskTitle}
                     taskDescription={taskDescription}
+                    taskDueDate={taskDueDate}
+                    taskStartDate={taskStartDate}
                     taskStatus={taskStatus}
+                    formError={taskFormError}
                     onClose={closeAddTaskDialog}
                     onSubmit={(event) => {
                         handleAddTaskSubmit(event).catch(console.error);
                     }}
                     onTaskDescriptionChange={setTaskDescription}
+                    onTaskDueDateChange={(value) => {
+                        setTaskDueDate(value);
+                        setTaskFormError(null);
+                    }}
+                    onTaskStartDateChange={(value) => {
+                        setTaskStartDate(value);
+                        setTaskFormError(null);
+                    }}
                     onTaskStatusChange={setTaskStatus}
                     onTaskTitleChange={setTaskTitle}
                 />

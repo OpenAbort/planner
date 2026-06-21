@@ -12,6 +12,8 @@ type TaskDetailsViewProps = {
     title: string;
     description: string;
     status: TaskStatus;
+    startDate: string | null;
+    dueDate: string | null;
   }) => Promise<Task | null>;
 };
 
@@ -19,6 +21,8 @@ export function TaskDetailsView({ task, onUpdateTask }: TaskDetailsViewProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>("OPEN");
+  const [startDate, setStartDate] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,6 +30,8 @@ export function TaskDetailsView({ task, onUpdateTask }: TaskDetailsViewProps) {
     setTitle(task?.title ?? "");
     setDescription(task?.description ?? "");
     setStatus(task?.status ?? "OPEN");
+    setStartDate(task?.startDate ?? "");
+    setDueDate(task?.dueDate ?? "");
     setError(null);
   }, [task]);
 
@@ -34,8 +40,10 @@ export function TaskDetailsView({ task, onUpdateTask }: TaskDetailsViewProps) {
       Boolean(task) &&
       (title !== task?.title ||
         description !== task?.description ||
-        status !== task?.status),
-    [description, status, task, title],
+        status !== task?.status ||
+        startDate !== (task?.startDate ?? "") ||
+        dueDate !== (task?.dueDate ?? "")),
+    [description, dueDate, startDate, status, task, title],
   );
 
   if (!task) {
@@ -61,6 +69,11 @@ export function TaskDetailsView({ task, onUpdateTask }: TaskDetailsViewProps) {
       return;
     }
 
+    if (startDate && dueDate && dueDate < startDate) {
+      setError("Due date must be on or after start date.");
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
 
@@ -70,6 +83,8 @@ export function TaskDetailsView({ task, onUpdateTask }: TaskDetailsViewProps) {
         title: trimmedTitle,
         description: description.trim(),
         status,
+        startDate: startDate || null,
+        dueDate: dueDate || null,
       });
     } catch (e) {
       setError(String(e));
@@ -97,6 +112,34 @@ export function TaskDetailsView({ task, onUpdateTask }: TaskDetailsViewProps) {
           onChange={(event) => setDescription(event.target.value)}
         />
       </label>
+
+      <div className="task-details-date-grid">
+        <label className="task-details-field">
+          <span>Start</span>
+          <input
+            className="task-details-input"
+            type="datetime-local"
+            value={startDate}
+            onChange={(event) => {
+              setStartDate(event.target.value);
+              setError(null);
+            }}
+          />
+        </label>
+
+        <label className="task-details-field">
+          <span>Due</span>
+          <input
+            className="task-details-input"
+            type="datetime-local"
+            value={dueDate}
+            onChange={(event) => {
+              setDueDate(event.target.value);
+              setError(null);
+            }}
+          />
+        </label>
+      </div>
 
       <fieldset className="task-details-field">
         <legend>Status</legend>
