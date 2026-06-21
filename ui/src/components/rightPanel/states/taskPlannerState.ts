@@ -1,14 +1,12 @@
 import { create } from "zustand";
+import type { TaskPrerequisiteLink } from "@/src/types/task.ts";
 
 export type NodePosition = {
   x: number;
   y: number;
 };
 
-export type PlannerLink = {
-  prerequisiteTaskId: string;
-  taskId: string;
-};
+export type PlannerLink = TaskPrerequisiteLink;
 
 type ActiveConnector = {
   prerequisiteTaskId: string;

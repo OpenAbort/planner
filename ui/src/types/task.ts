@@ -13,3 +13,8 @@ export type Task = {
     description: string;
     status: TaskStatus;
 };
+
+export type TaskPrerequisiteLink = {
+    prerequisiteTaskId: string;
+    taskId: string;
+};

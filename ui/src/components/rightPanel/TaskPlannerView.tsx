@@ -1,6 +1,7 @@
 import {MouseEvent, PointerEvent, useEffect, useMemo, useRef, useState} from "react";
 import type {NodePosition} from "./states/taskPlannerState.ts";
 import {useTaskPlannerState} from "./states/taskPlannerState.ts";
+import {useTaskPrerequisites} from "@/src/hooks/useTaskPrerequisites.ts";
 import type {Task} from "@/src/types/task.ts";
 import {TaskPlannerCanvasContextMenu} from "./TaskPlannerCanvasContextMenu.tsx";
 import {TaskPlannerLinks} from "./TaskPlannerLinks.tsx";
@@ -35,12 +36,9 @@ export function TaskPlannerView({tasks}: TaskPlannerViewProps) {
     const [contextMenu, setContextMenu] = useState<PlannerContextMenu | null>(null);
     const {
         activeConnector,
-        addLink,
         cancelConnector,
         clearFeedback,
-        clearTaskPrerequisites,
         feedback,
-        links,
         moveNode,
         nodePositions,
         resetNodePositions,
@@ -48,10 +46,13 @@ export function TaskPlannerView({tasks}: TaskPlannerViewProps) {
         updateConnector,
     } = useTaskPlannerState();
 
-    const taskIndexById = useMemo(
-        () => new Map(tasks.map((task, index) => [task.id, index])),
-        [tasks],
-    );
+    const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
+    const {
+        addPrerequisite,
+        clearTaskPrerequisites,
+        getPrerequisiteCount,
+        visiblePrerequisiteLinks,
+    } = useTaskPrerequisites({taskIds});
 
     const positions = useMemo(() => {
         const nextPositions: Record<string, NodePosition> = {};
@@ -62,20 +63,6 @@ export function TaskPlannerView({tasks}: TaskPlannerViewProps) {
 
         return nextPositions;
     }, [nodePositions, tasks]);
-
-    const visibleLinks = links.filter(
-        (link) => taskIndexById.has(link.prerequisiteTaskId) && taskIndexById.has(link.taskId),
-    );
-
-    const prerequisiteCountByTaskId = useMemo(() => {
-        const counts = new Map<string, number>();
-
-        visibleLinks.forEach((link) => {
-            counts.set(link.taskId, (counts.get(link.taskId) ?? 0) + 1);
-        });
-
-        return counts;
-    }, [visibleLinks]);
 
     const canvasSize = useMemo(() => {
         const allPositions = Object.values(positions);
@@ -203,7 +190,7 @@ export function TaskPlannerView({tasks}: TaskPlannerViewProps) {
         }
 
         event.stopPropagation();
-        addLink(activeConnector.prerequisiteTaskId, taskId);
+        void addPrerequisite(activeConnector.prerequisiteTaskId, taskId);
     }
 
     if (tasks.length === 0) {
@@ -233,7 +220,7 @@ export function TaskPlannerView({tasks}: TaskPlannerViewProps) {
             <TaskPlannerLinks
                 activeConnector={activeConnector}
                 canvasSize={canvasSize}
-                links={visibleLinks}
+                links={visiblePrerequisiteLinks}
                 positions={positions}
             />
 
@@ -263,7 +250,7 @@ export function TaskPlannerView({tasks}: TaskPlannerViewProps) {
             {contextMenu?.kind === "node" && (
                 <TaskPlannerNodeContextMenu
                     position={contextMenu.position}
-                    prerequisiteCount={prerequisiteCountByTaskId.get(contextMenu.taskId) ?? 0}
+                    prerequisiteCount={getPrerequisiteCount(contextMenu.taskId)}
                     taskTitle={
                         tasks.find((task) => task.id === contextMenu.taskId)?.title ??
                         "Task"
