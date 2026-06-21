@@ -270,6 +270,13 @@ export function TaskPlannerView({
         };
     }
 
+    function getUnscaledCanvasPoint(position: NodePosition): NodePosition {
+        return {
+            x: position.x * zoom,
+            y: position.y * zoom,
+        };
+    }
+
     function updateZoom(nextZoom: number) {
         setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(nextZoom.toFixed(2)))));
     }
@@ -892,57 +899,6 @@ export function TaskPlannerView({
                             />
                         ))}
 
-                        {contextMenu?.kind === "canvas" && (
-                            <TaskPlannerCanvasContextMenu
-                                hasActiveConnector={Boolean(activeConnector)}
-                                position={contextMenu.position}
-                                onAutoSortLayout={() => {
-                                    handleAutoSortPlanner().catch(console.error);
-                                }}
-                                onCancelConnector={cancelConnector}
-                                onClose={closeContextMenu}
-                                onCreateTask={() => setPendingTaskPosition(contextMenu.position)}
-                                onResetLayout={() => {
-                                    void resetPlannerPositions();
-                                }}
-                            />
-                        )}
-
-                        {contextMenu?.kind === "node" && (
-                            <TaskPlannerNodeContextMenu
-                                position={contextMenu.position}
-                                prerequisiteCount={getPrerequisiteCount(contextMenu.taskId)}
-                                taskTitle={
-                                    tasks.find((task) => task.id === contextMenu.taskId)?.title ??
-                                    "Task"
-                                }
-                                onClearPrerequisites={() =>
-                                    clearTaskPrerequisites(contextMenu.taskId)
-                                }
-                                onClose={closeContextMenu}
-                                onOpenDetails={() => {
-                                    onRequestTaskDetails(contextMenu.taskId);
-                                    closeContextMenu();
-                                }}
-                            />
-                        )}
-
-                        {contextMenu?.kind === "link" && (
-                            <TaskPlannerLinkContextMenu
-                                labelDraft={linkLabelDraft}
-                                link={contextMenu.link}
-                                position={contextMenu.position}
-                                onClose={closeContextMenu}
-                                onDelete={() => {
-                                    handleDeleteLink().catch(console.error);
-                                }}
-                                onLabelDraftChange={setLinkLabelDraft}
-                                onSaveLabel={() => {
-                                    handleSaveLinkLabel().catch(console.error);
-                                }}
-                            />
-                        )}
-
                         {activeTaskCard && (
                             <TaskPlannerTaskCard
                                 position={activeTaskCard.position}
@@ -956,6 +912,57 @@ export function TaskPlannerView({
                             />
                         )}
                     </div>
+
+                    {contextMenu?.kind === "canvas" && (
+                        <TaskPlannerCanvasContextMenu
+                            hasActiveConnector={Boolean(activeConnector)}
+                            position={getUnscaledCanvasPoint(contextMenu.position)}
+                            onAutoSortLayout={() => {
+                                handleAutoSortPlanner().catch(console.error);
+                            }}
+                            onCancelConnector={cancelConnector}
+                            onClose={closeContextMenu}
+                            onCreateTask={() => setPendingTaskPosition(contextMenu.position)}
+                            onResetLayout={() => {
+                                void resetPlannerPositions();
+                            }}
+                        />
+                    )}
+
+                    {contextMenu?.kind === "node" && (
+                        <TaskPlannerNodeContextMenu
+                            position={getUnscaledCanvasPoint(contextMenu.position)}
+                            prerequisiteCount={getPrerequisiteCount(contextMenu.taskId)}
+                            taskTitle={
+                                tasks.find((task) => task.id === contextMenu.taskId)?.title ??
+                                "Task"
+                            }
+                            onClearPrerequisites={() =>
+                                clearTaskPrerequisites(contextMenu.taskId)
+                            }
+                            onClose={closeContextMenu}
+                            onOpenDetails={() => {
+                                onRequestTaskDetails(contextMenu.taskId);
+                                closeContextMenu();
+                            }}
+                        />
+                    )}
+
+                    {contextMenu?.kind === "link" && (
+                        <TaskPlannerLinkContextMenu
+                            labelDraft={linkLabelDraft}
+                            link={contextMenu.link}
+                            position={getUnscaledCanvasPoint(contextMenu.position)}
+                            onClose={closeContextMenu}
+                            onDelete={() => {
+                                handleDeleteLink().catch(console.error);
+                            }}
+                            onLabelDraftChange={setLinkLabelDraft}
+                            onSaveLabel={() => {
+                                handleSaveLinkLabel().catch(console.error);
+                            }}
+                        />
+                    )}
                 </div>
             </div>
             {pendingTaskPosition && (
