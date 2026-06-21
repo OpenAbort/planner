@@ -20,6 +20,7 @@ type RightPanelProps = {
 export function RightPanel({ tasks, onUpdateTask }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<RightPanelTab>("details");
   const selectedTaskId = useTaskSelectionState((state) => state.selectedTaskId);
+  const selectTask = useTaskSelectionState((state) => state.selectTask);
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
@@ -57,7 +58,13 @@ export function RightPanel({ tasks, onUpdateTask }: RightPanelProps) {
       {activeTab === "details" ? (
         <TaskDetailsView task={selectedTask} onUpdateTask={onUpdateTask} />
       ) : (
-        <TaskPlannerView tasks={tasks} />
+        <TaskPlannerView
+          tasks={tasks}
+          onRequestTaskDetails={(taskId) => {
+            selectTask(taskId);
+            setActiveTab("details");
+          }}
+        />
       )}
     </section>
   );

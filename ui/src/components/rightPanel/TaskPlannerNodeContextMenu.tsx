@@ -1,4 +1,4 @@
-import { Link2Off } from "lucide-react";
+import { FileText, Link2Off } from "lucide-react";
 import type { NodePosition } from "./states/taskPlannerState.ts";
 
 type TaskPlannerNodeContextMenuProps = {
@@ -7,6 +7,7 @@ type TaskPlannerNodeContextMenuProps = {
   taskTitle: string;
   onClearPrerequisites: () => void;
   onClose: () => void;
+  onOpenDetails: () => void;
 };
 
 export function TaskPlannerNodeContextMenu({
@@ -15,6 +16,7 @@ export function TaskPlannerNodeContextMenu({
   taskTitle,
   onClearPrerequisites,
   onClose,
+  onOpenDetails,
 }: TaskPlannerNodeContextMenuProps) {
   return (
     <div
@@ -27,6 +29,15 @@ export function TaskPlannerNodeContextMenu({
       aria-label={`${taskTitle} actions`}
       onPointerDown={(event) => event.stopPropagation()}
     >
+      <button
+        className="task-planner-context-menu-item"
+        type="button"
+        role="menuitem"
+        onClick={onOpenDetails}
+      >
+        <FileText className="size-4" />
+        Details
+      </button>
       <button
         className="task-planner-context-menu-item"
         type="button"

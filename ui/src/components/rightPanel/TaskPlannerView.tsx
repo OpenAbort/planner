@@ -18,6 +18,7 @@ type DraggingNode = {
 
 type TaskPlannerViewProps = {
     tasks: Task[];
+    onRequestTaskDetails: (taskId: string) => void;
 };
 
 type PlannerContextMenu =
@@ -31,7 +32,7 @@ type PlannerContextMenu =
     taskId: string;
 };
 
-export function TaskPlannerView({tasks}: TaskPlannerViewProps) {
+export function TaskPlannerView({tasks, onRequestTaskDetails}: TaskPlannerViewProps) {
     const canvasRef = useRef<HTMLDivElement | null>(null);
     const [draggingNode, setDraggingNode] = useState<DraggingNode | null>(null);
     const [contextMenu, setContextMenu] = useState<PlannerContextMenu | null>(null);
@@ -276,6 +277,10 @@ export function TaskPlannerView({tasks}: TaskPlannerViewProps) {
                         clearTaskPrerequisites(contextMenu.taskId)
                     }
                     onClose={closeContextMenu}
+                    onOpenDetails={() => {
+                        onRequestTaskDetails(contextMenu.taskId);
+                        closeContextMenu();
+                    }}
                 />
             )}
         </div>
