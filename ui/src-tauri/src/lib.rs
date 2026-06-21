@@ -3,13 +3,14 @@ mod core;
 mod tasks;
 
 use app::ApplicationContainer;
-use tauri::Manager;
 use tasks::commands::{
     add_task, add_task_prerequisite, clear_task_prerequisites, delete_task,
-    delete_task_prerequisite, get_task, list_task_planner_positions, list_task_prerequisites,
-    list_tasks, reset_task_planner_positions, update_task, update_task_prerequisite_label,
-    update_task_status, upsert_task_planner_position,
+    delete_task_prerequisite, get_app_preference, get_task, list_task_planner_positions,
+    list_task_prerequisites, list_tasks, reset_task_planner_positions, update_task,
+    update_task_prerequisite_label, update_task_status, upsert_app_preference,
+    upsert_task_planner_position,
 };
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -37,7 +38,9 @@ pub fn run() {
             clear_task_prerequisites,
             list_task_planner_positions,
             upsert_task_planner_position,
-            reset_task_planner_positions
+            reset_task_planner_positions,
+            get_app_preference,
+            upsert_app_preference
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

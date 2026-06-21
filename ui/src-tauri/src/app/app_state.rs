@@ -50,6 +50,12 @@ fn initialize_schema(connection: &Connection) -> rusqlite::Result<()> {
             y REAL NOT NULL,
             FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS app_preferences (
+            key TEXT PRIMARY KEY NOT NULL,
+            value TEXT NOT NULL,
+            updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
         ",
     )?;
 
@@ -61,10 +67,7 @@ fn initialize_schema(connection: &Connection) -> rusqlite::Result<()> {
         .any(|column_name| column_name == "label");
 
     if !has_prerequisite_label {
-        connection.execute(
-            "ALTER TABLE task_prerequisites ADD COLUMN label TEXT",
-            [],
-        )?;
+        connection.execute("ALTER TABLE task_prerequisites ADD COLUMN label TEXT", [])?;
     }
 
     Ok(())

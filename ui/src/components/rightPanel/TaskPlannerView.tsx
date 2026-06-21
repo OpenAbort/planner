@@ -1,6 +1,7 @@
 import {FormEvent, MouseEvent, PointerEvent, useEffect, useMemo, useRef, useState} from "react";
 import type {NodePosition} from "./states/taskPlannerState.ts";
 import {useTaskPlannerState} from "./states/taskPlannerState.ts";
+import {useAppPreference} from "@/src/hooks/useAppPreference.ts";
 import {useTaskPlannerPositions} from "@/src/hooks/useTaskPlannerPositions.ts";
 import {useTaskPrerequisites} from "@/src/hooks/useTaskPrerequisites.ts";
 import type {Task, TaskStatus} from "@/src/types/task.ts";
@@ -20,6 +21,19 @@ const MAX_ZOOM = 1.8;
 const ZOOM_STEP = 0.1;
 const AUTO_SORT_GRID_X = 360;
 const AUTO_SORT_GRID_Y = 190;
+const PLANNER_ZOOM_PREFERENCE_KEY = "planner.zoom";
+
+function clampZoom(nextZoom: number) {
+    return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(nextZoom.toFixed(2))));
+}
+
+function parsePlannerZoomPreference(value: string) {
+    const parsedValue = Number(value);
+
+    return Number.isFinite(parsedValue)
+        ? clampZoom(parsedValue)
+        : null;
+}
 
 type PlannerMode = "view" | "edit" | "select";
 
@@ -111,7 +125,6 @@ export function TaskPlannerView({
     const [linkLabelDraft, setLinkLabelDraft] = useState("");
     const [plannerMode, setPlannerMode] = useState<PlannerMode>("view");
     const [activeTaskCard, setActiveTaskCard] = useState<ActiveTaskCard | null>(null);
-    const [zoom, setZoom] = useState(1);
     const {
         activeConnector,
         cancelConnector,
@@ -136,6 +149,15 @@ export function TaskPlannerView({
         updatePrerequisiteLabel,
         visiblePrerequisiteLinks,
     } = useTaskPrerequisites({taskIds});
+    const {
+        setValue: saveZoomPreference,
+        value: zoom,
+    } = useAppPreference({
+        defaultValue: 1,
+        deserialize: parsePlannerZoomPreference,
+        key: PLANNER_ZOOM_PREFERENCE_KEY,
+        serialize: String,
+    });
 
     const positions = useMemo(() => {
         const nextPositions: Record<string, NodePosition> = {};
@@ -278,7 +300,7 @@ export function TaskPlannerView({
     }
 
     function updateZoom(nextZoom: number) {
-        setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(nextZoom.toFixed(2)))));
+        saveZoomPreference(clampZoom(nextZoom)).catch(console.error);
     }
 
     function handlePlannerModeChange(mode: PlannerMode) {

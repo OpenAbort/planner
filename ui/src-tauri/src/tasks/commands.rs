@@ -1,5 +1,5 @@
 use crate::app::ApplicationContainer;
-use crate::tasks::model::{Task, TaskPlannerPosition, TaskPrerequisite};
+use crate::tasks::model::{AppPreference, Task, TaskPlannerPosition, TaskPrerequisite};
 use nanoid::nanoid;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::collections::{HashMap, HashSet};
@@ -167,9 +167,10 @@ pub fn add_task_prerequisite(
 
     let links = load_prerequisite_links(&db).map_err(|error| error.to_string())?;
 
-    if links.iter().any(|link| {
-        link.prerequisite_task_id == prerequisite_task_id && link.task_id == task_id
-    }) {
+    if links
+        .iter()
+        .any(|link| link.prerequisite_task_id == prerequisite_task_id && link.task_id == task_id)
+    {
         return Ok(false);
     }
 
@@ -328,6 +329,54 @@ pub fn reset_task_planner_positions(
     Ok(deleted)
 }
 
+#[tauri::command]
+pub fn get_app_preference(
+    key: String,
+    container: State<ApplicationContainer>,
+) -> Result<Option<AppPreference>, String> {
+    let db = container.database();
+
+    db.query_row(
+        "
+        SELECT key, value
+        FROM app_preferences
+        WHERE key = ?1
+        ",
+        params![&key],
+        row_to_app_preference,
+    )
+    .optional()
+    .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub fn upsert_app_preference(
+    key: String,
+    value: String,
+    container: State<ApplicationContainer>,
+) -> Result<AppPreference, String> {
+    if key.trim().is_empty() {
+        return Err("Preference key cannot be empty.".to_string());
+    }
+
+    let db = container.database();
+    let preference = AppPreference::new(key, value);
+
+    db.execute(
+        "
+        INSERT INTO app_preferences (key, value)
+        VALUES (?1, ?2)
+        ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value,
+                updated_at = unixepoch()
+        ",
+        params![&preference.key, &preference.value],
+    )
+    .map_err(|error| error.to_string())?;
+
+    Ok(preference)
+}
+
 fn find_task(connection: &Connection, id: &str) -> rusqlite::Result<Option<Task>> {
     connection
         .query_row(
@@ -376,6 +425,10 @@ fn row_to_task_planner_position(row: &rusqlite::Row<'_>) -> rusqlite::Result<Tas
         row.get(1)?,
         row.get(2)?,
     ))
+}
+
+fn row_to_app_preference(row: &rusqlite::Row<'_>) -> rusqlite::Result<AppPreference> {
+    Ok(AppPreference::new(row.get(0)?, row.get(1)?))
 }
 
 fn would_create_cycle(

@@ -36,6 +36,18 @@ pub struct TaskPlannerPosition {
     pub y: f64,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AppPreference {
+    pub key: String,
+    pub value: String,
+}
+
+impl AppPreference {
+    pub fn new(key: String, value: String) -> Self {
+        Self { key, value }
+    }
+}
+
 impl TaskPlannerPosition {
     pub fn new(task_id: String, x: f64, y: f64) -> Self {
         Self { task_id, x, y }
