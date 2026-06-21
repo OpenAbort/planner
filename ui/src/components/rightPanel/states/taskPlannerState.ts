@@ -19,6 +19,7 @@ type TaskPlannerState = {
   links: PlannerLink[];
   activeConnector: ActiveConnector | null;
   feedback: string | null;
+  setPrerequisiteLinks: (links: PlannerLink[]) => void;
   moveNode: (taskId: string, position: NodePosition) => void;
   resetNodePositions: () => void;
   startConnector: (prerequisiteTaskId: string, position: NodePosition) => void;
@@ -68,6 +69,7 @@ export const useTaskPlannerState = create<TaskPlannerState>((set, get) => ({
   links: [],
   activeConnector: null,
   feedback: null,
+  setPrerequisiteLinks: (links) => set({ links }),
   moveNode: (taskId, position) =>
     set((state) => ({
       nodePositions: {

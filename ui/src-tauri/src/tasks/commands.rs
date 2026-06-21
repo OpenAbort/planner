@@ -1,7 +1,8 @@
 use crate::app::ApplicationContainer;
-use crate::common::constants::TASKS_COLLECTION;
-use crate::tasks::model::Task;
+use crate::tasks::model::{Task, TaskPrerequisite};
 use nanoid::nanoid;
+use rusqlite::{params, Connection, OptionalExtension};
+use std::collections::{HashMap, HashSet};
 use tauri::State;
 
 #[tauri::command]
@@ -16,9 +17,13 @@ pub fn add_task(
     }
 
     let task = Task::new(nanoid!(), title, description, status);
-    let mut db = container.database();
+    let db = container.database();
 
-    db.add(TASKS_COLLECTION, task.clone());
+    db.execute(
+        "INSERT INTO tasks (id, title, description, status) VALUES (?1, ?2, ?3, ?4)",
+        params![&task.id, &task.title, &task.description, &task.status],
+    )
+    .map_err(|error| error.to_string())?;
 
     Ok(task)
 }
@@ -30,21 +35,34 @@ pub fn get_task(
 ) -> Result<Option<Task>, String> {
     let db = container.database();
 
-    Ok(db.find::<Task>(TASKS_COLLECTION, &id).cloned())
+    find_task(&db, &id).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
 pub fn list_tasks(
     limit: usize,
     offset: usize,
-    container: State<ApplicationContainer>) -> Result<Vec<Task>, String> {
+    container: State<ApplicationContainer>,
+) -> Result<Vec<Task>, String> {
     let db = container.database();
+    let mut statement = db
+        .prepare(
+            "
+            SELECT id, title, description, status
+            FROM tasks
+            ORDER BY created_at DESC, rowid DESC
+            LIMIT ?1 OFFSET ?2
+            ",
+        )
+        .map_err(|error| error.to_string())?;
 
-    Ok(db
-        .list::<Task>(TASKS_COLLECTION, limit, offset)
-        .into_iter()
-        .cloned()
-        .collect())
+    let tasks = statement
+        .query_map(params![limit as i64, offset as i64], row_to_task)
+        .map_err(|error| error.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| error.to_string())?;
+
+    Ok(tasks)
 }
 
 #[tauri::command]
@@ -53,16 +71,15 @@ pub fn update_task_status(
     status: String,
     container: State<ApplicationContainer>,
 ) -> Result<Option<Task>, String> {
-    let mut db = container.database();
-    let Some(existing_task) = db.find::<Task>(TASKS_COLLECTION, &id).cloned() else {
-        return Ok(None);
-    };
+    let db = container.database();
 
-    let mut updated_task = existing_task;
-    updated_task.set_status(status);
-    db.update(TASKS_COLLECTION, updated_task.clone());
+    db.execute(
+        "UPDATE tasks SET status = ?1 WHERE id = ?2",
+        params![&status, &id],
+    )
+    .map_err(|error| error.to_string())?;
 
-    Ok(Some(updated_task))
+    find_task(&db, &id).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -77,21 +94,210 @@ pub fn update_task(
         return Err("Title cannot be empty".to_string());
     }
 
-    let mut db = container.database();
-    let Some(existing_task) = db.find::<Task>(TASKS_COLLECTION, &id).cloned() else {
-        return Ok(None);
-    };
+    let db = container.database();
 
-    let mut updated_task = existing_task;
-    updated_task.update_details(title, description, status);
-    db.update(TASKS_COLLECTION, updated_task.clone());
+    db.execute(
+        "
+        UPDATE tasks
+        SET title = ?1, description = ?2, status = ?3
+        WHERE id = ?4
+        ",
+        params![&title, &description, &status, &id],
+    )
+    .map_err(|error| error.to_string())?;
 
-    Ok(Some(updated_task))
+    find_task(&db, &id).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
 pub fn delete_task(id: String, container: State<ApplicationContainer>) -> Result<bool, String> {
-    let mut db = container.database();
+    let db = container.database();
+    let deleted = db
+        .execute("DELETE FROM tasks WHERE id = ?1", params![&id])
+        .map_err(|error| error.to_string())?;
 
-    Ok(db.delete(TASKS_COLLECTION, &id))
+    Ok(deleted > 0)
+}
+
+#[tauri::command]
+pub fn list_task_prerequisites(
+    container: State<ApplicationContainer>,
+) -> Result<Vec<TaskPrerequisite>, String> {
+    let db = container.database();
+    let mut statement = db
+        .prepare(
+            "
+            SELECT prerequisite_task_id, task_id
+            FROM task_prerequisites
+            ORDER BY prerequisite_task_id, task_id
+            ",
+        )
+        .map_err(|error| error.to_string())?;
+
+    let links = statement
+        .query_map([], row_to_task_prerequisite)
+        .map_err(|error| error.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| error.to_string())?;
+
+    Ok(links)
+}
+
+#[tauri::command]
+pub fn add_task_prerequisite(
+    prerequisite_task_id: String,
+    task_id: String,
+    container: State<ApplicationContainer>,
+) -> Result<bool, String> {
+    if prerequisite_task_id == task_id {
+        return Err("A task cannot be its own prerequisite.".to_string());
+    }
+
+    let db = container.database();
+
+    if find_task(&db, &prerequisite_task_id)
+        .map_err(|error| error.to_string())?
+        .is_none()
+        || find_task(&db, &task_id)
+            .map_err(|error| error.to_string())?
+            .is_none()
+    {
+        return Err("Both tasks must exist before linking prerequisites.".to_string());
+    }
+
+    let links = load_prerequisite_links(&db).map_err(|error| error.to_string())?;
+
+    if links.iter().any(|link| {
+        link.prerequisite_task_id == prerequisite_task_id && link.task_id == task_id
+    }) {
+        return Ok(false);
+    }
+
+    if would_create_cycle(&links, &prerequisite_task_id, &task_id) {
+        return Err("That prerequisite would create a cycle.".to_string());
+    }
+
+    let inserted = db
+        .execute(
+            "
+            INSERT OR IGNORE INTO task_prerequisites (prerequisite_task_id, task_id)
+            VALUES (?1, ?2)
+            ",
+            params![&prerequisite_task_id, &task_id],
+        )
+        .map_err(|error| error.to_string())?;
+
+    Ok(inserted > 0)
+}
+
+#[tauri::command]
+pub fn delete_task_prerequisite(
+    prerequisite_task_id: String,
+    task_id: String,
+    container: State<ApplicationContainer>,
+) -> Result<bool, String> {
+    let db = container.database();
+    let deleted = db
+        .execute(
+            "
+            DELETE FROM task_prerequisites
+            WHERE prerequisite_task_id = ?1 AND task_id = ?2
+            ",
+            params![&prerequisite_task_id, &task_id],
+        )
+        .map_err(|error| error.to_string())?;
+
+    Ok(deleted > 0)
+}
+
+#[tauri::command]
+pub fn clear_task_prerequisites(
+    task_id: String,
+    container: State<ApplicationContainer>,
+) -> Result<usize, String> {
+    let db = container.database();
+    let deleted = db
+        .execute(
+            "DELETE FROM task_prerequisites WHERE task_id = ?1",
+            params![&task_id],
+        )
+        .map_err(|error| error.to_string())?;
+
+    Ok(deleted)
+}
+
+fn find_task(connection: &Connection, id: &str) -> rusqlite::Result<Option<Task>> {
+    connection
+        .query_row(
+            "
+            SELECT id, title, description, status
+            FROM tasks
+            WHERE id = ?1
+            ",
+            params![id],
+            row_to_task,
+        )
+        .optional()
+}
+
+fn load_prerequisite_links(connection: &Connection) -> rusqlite::Result<Vec<TaskPrerequisite>> {
+    let mut statement = connection.prepare(
+        "
+        SELECT prerequisite_task_id, task_id
+        FROM task_prerequisites
+        ",
+    )?;
+
+    let links = statement
+        .query_map([], row_to_task_prerequisite)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(links)
+}
+
+fn row_to_task(row: &rusqlite::Row<'_>) -> rusqlite::Result<Task> {
+    Ok(Task {
+        id: row.get(0)?,
+        title: row.get(1)?,
+        description: row.get(2)?,
+        status: row.get(3)?,
+    })
+}
+
+fn row_to_task_prerequisite(row: &rusqlite::Row<'_>) -> rusqlite::Result<TaskPrerequisite> {
+    Ok(TaskPrerequisite::new(row.get(0)?, row.get(1)?))
+}
+
+fn would_create_cycle(
+    links: &[TaskPrerequisite],
+    prerequisite_task_id: &str,
+    task_id: &str,
+) -> bool {
+    let mut dependents_by_prerequisite = HashMap::<&str, Vec<&str>>::new();
+
+    for link in links {
+        dependents_by_prerequisite
+            .entry(&link.prerequisite_task_id)
+            .or_default()
+            .push(&link.task_id);
+    }
+
+    let mut stack = vec![task_id];
+    let mut visited = HashSet::<&str>::new();
+
+    while let Some(current_task_id) = stack.pop() {
+        if !visited.insert(current_task_id) {
+            continue;
+        }
+
+        if current_task_id == prerequisite_task_id {
+            return true;
+        }
+
+        if let Some(dependents) = dependents_by_prerequisite.get(current_task_id) {
+            stack.extend(dependents.iter().copied());
+        }
+    }
+
+    false
 }

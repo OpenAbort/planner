@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useTaskPlannerState } from "@/src/components/rightPanel/states/taskPlannerState.ts";
 import type { TaskPrerequisiteLink } from "@/src/types/task.ts";
 
@@ -9,10 +10,15 @@ type UseTaskPrerequisitesParams = {
 export function useTaskPrerequisites({
     taskIds,
 }: UseTaskPrerequisitesParams = {}) {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const links = useTaskPlannerState((state) => state.links);
     const addLink = useTaskPlannerState((state) => state.addLink);
     const clearTaskPrerequisitesFromState = useTaskPlannerState(
         (state) => state.clearTaskPrerequisites,
+    );
+    const setPrerequisiteLinks = useTaskPlannerState(
+        (state) => state.setPrerequisiteLinks,
     );
 
     const taskIdSet = useMemo(
@@ -32,21 +38,65 @@ export function useTaskPrerequisites({
         [links, taskIdSet],
     );
 
+    const loadPrerequisites = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const result = await invoke<TaskPrerequisiteLink[]>(
+                "list_task_prerequisites",
+            );
+            setPrerequisiteLinks(result);
+            return result;
+        } catch (e) {
+            const message = String(e);
+            setError(message);
+            throw e;
+        } finally {
+            setLoading(false);
+        }
+    }, [setPrerequisiteLinks]);
+
     const addPrerequisite = useCallback(
         async (prerequisiteTaskId: string, taskId: string) => {
-            const didAdd = addLink(prerequisiteTaskId, taskId);
+            setError(null);
 
-            if (!didAdd) {
+            let didPersist: boolean;
+
+            try {
+                didPersist = await invoke<boolean>("add_task_prerequisite", {
+                    prerequisiteTaskId,
+                    taskId,
+                });
+            } catch (e) {
+                const message = String(e);
+                setError(message);
+                throw e;
+            }
+
+            if (!didPersist) {
                 return false;
             }
 
-            return true;
+            return addLink(prerequisiteTaskId, taskId);
         },
         [addLink],
     );
 
     const clearTaskPrerequisites = useCallback(
         async (taskId: string) => {
+            setError(null);
+
+            try {
+                await invoke<number>("clear_task_prerequisites", {
+                    taskId,
+                });
+            } catch (e) {
+                const message = String(e);
+                setError(message);
+                throw e;
+            }
+
             clearTaskPrerequisitesFromState(taskId);
         },
         [clearTaskPrerequisitesFromState],
@@ -58,9 +108,16 @@ export function useTaskPrerequisites({
         [visiblePrerequisiteLinks],
     );
 
+    useEffect(() => {
+        loadPrerequisites().catch(console.error);
+    }, [loadPrerequisites]);
+
     return {
+        loading,
+        error,
         prerequisiteLinks: links as TaskPrerequisiteLink[],
         visiblePrerequisiteLinks,
+        loadPrerequisites,
         addPrerequisite,
         clearTaskPrerequisites,
         getPrerequisiteCount,

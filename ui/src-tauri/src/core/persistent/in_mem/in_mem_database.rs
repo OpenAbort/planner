@@ -1,5 +1,5 @@
 use super::entity_set::{EntitySet, ThreadSharedEntitySet};
-use crate::core::persistent::entity::StoredEntity;
+use crate::core::persistent::in_mem::entity::StoredEntity;
 use std::collections::HashMap;
 
 pub struct InMemDatabase {

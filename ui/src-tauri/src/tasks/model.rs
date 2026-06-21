@@ -1,4 +1,3 @@
-use crate::core::persistent::entity::Entity;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -18,20 +17,21 @@ impl Task {
             status,
         }
     }
-
-    pub fn set_status(&mut self, status: String) {
-        self.status = status;
-    }
-
-    pub fn update_details(&mut self, title: String, description: String, status: String) {
-        self.title = title;
-        self.description = description;
-        self.status = status;
-    }
 }
 
-impl Entity<String> for Task {
-    fn get_id(&self) -> &String {
-        &self.id
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TaskPrerequisite {
+    #[serde(rename = "prerequisiteTaskId")]
+    pub prerequisite_task_id: String,
+    #[serde(rename = "taskId")]
+    pub task_id: String,
+}
+
+impl TaskPrerequisite {
+    pub fn new(prerequisite_task_id: String, task_id: String) -> Self {
+        Self {
+            prerequisite_task_id,
+            task_id,
+        }
     }
 }
