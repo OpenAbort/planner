@@ -430,6 +430,52 @@ h1 {
     stroke-width: 2;
 }
 
+.task-planner-link-hit-target {
+    cursor: pointer;
+    pointer-events: stroke;
+    stroke: transparent;
+    stroke-width: 18;
+}
+
+.task-planner-link-label-wrap {
+    overflow: visible;
+    pointer-events: auto;
+}
+
+.task-planner-link-label {
+    display: block;
+    width: 108px;
+    height: 30px;
+    overflow: hidden;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #172033;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 28px;
+    padding: 0 10px;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+.task-planner-link-label.empty {
+    width: 64px;
+    margin-left: 22px;
+    border-style: dashed;
+    color: #64748b;
+}
+
+.task-planner-link-label:hover,
+.task-planner-link-label:focus-visible {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #1d4ed8;
+    outline: none;
+}
+
 .task-planner-links line.active {
     stroke: #2563eb;
     stroke-dasharray: 5 5;
@@ -671,9 +717,56 @@ h1 {
     outline: none;
 }
 
+.task-planner-context-menu-item.danger {
+    color: #be123c;
+}
+
+.task-planner-context-menu-item.danger:hover,
+.task-planner-context-menu-item.danger:focus-visible {
+    background: #fff1f2;
+    color: #be123c;
+}
+
 .task-planner-context-menu-item:disabled {
     cursor: not-allowed;
     opacity: 0.45;
+}
+
+.task-planner-link-menu {
+    min-width: 240px;
+    transform: translate(-50%, 12px);
+}
+
+.task-planner-link-label-field {
+    display: grid;
+    gap: 6px;
+    padding: 6px;
+}
+
+.task-planner-link-label-field span {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.task-planner-link-label-field input {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #0f172a;
+    outline: none;
+    padding: 8px 9px;
+}
+
+.task-planner-link-label-field input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.task-planner-link-menu-actions {
+    display: grid;
+    gap: 4px;
 }
 
 .task-planner-context-menu-hint {

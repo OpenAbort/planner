@@ -7,8 +7,8 @@ use tauri::Manager;
 use tasks::commands::{
     add_task, add_task_prerequisite, clear_task_prerequisites, delete_task,
     delete_task_prerequisite, get_task, list_task_planner_positions, list_task_prerequisites,
-    list_tasks, reset_task_planner_positions, update_task, update_task_status,
-    upsert_task_planner_position,
+    list_tasks, reset_task_planner_positions, update_task, update_task_prerequisite_label,
+    update_task_status, upsert_task_planner_position,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -32,6 +32,7 @@ pub fn run() {
             delete_task,
             list_task_prerequisites,
             add_task_prerequisite,
+            update_task_prerequisite_label,
             delete_task_prerequisite,
             clear_task_prerequisites,
             list_task_planner_positions,

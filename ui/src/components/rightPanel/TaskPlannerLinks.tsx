@@ -17,6 +17,7 @@ type TaskPlannerLinksProps = {
     height: number;
   };
   links: PlannerLink[];
+  onOpenLinkMenu: (link: PlannerLink, position: NodePosition) => void;
   positions: Record<string, NodePosition>;
 };
 
@@ -24,13 +25,14 @@ export function TaskPlannerLinks({
   activeConnector,
   canvasSize,
   links,
+  onOpenLinkMenu,
   positions,
 }: TaskPlannerLinksProps) {
   return (
     <svg
       className="task-planner-links"
       style={{ width: canvasSize.width, height: canvasSize.height }}
-      aria-hidden="true"
+      aria-label="Task planner prerequisite connections"
     >
       <defs>
         <marker
@@ -47,16 +49,57 @@ export function TaskPlannerLinks({
       {links.map((link) => {
         const source = getConnectorPoint(positions[link.prerequisiteTaskId]);
         const target = getTargetPoint(positions[link.taskId]);
+        const midpoint = {
+          x: source.x + (target.x - source.x) / 2,
+          y: source.y + (target.y - source.y) / 2,
+        };
+        const angle =
+          (Math.atan2(target.y - source.y, target.x - source.x) * 180) / Math.PI;
+        const labelText = link.label?.trim() || "Link";
 
         return (
-          <line
-            key={`${link.prerequisiteTaskId}-${link.taskId}`}
-            x1={source.x}
-            y1={source.y}
-            x2={target.x}
-            y2={target.y}
-            markerEnd="url(#planner-arrow)"
-          />
+          <g key={`${link.prerequisiteTaskId}-${link.taskId}`}>
+            <line
+              x1={source.x}
+              y1={source.y}
+              x2={target.x}
+              y2={target.y}
+              markerEnd="url(#planner-arrow)"
+            />
+            <line
+              className="task-planner-link-hit-target"
+              x1={source.x}
+              y1={source.y}
+              x2={target.x}
+              y2={target.y}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onOpenLinkMenu(link, midpoint);
+              }}
+            />
+            <foreignObject
+              className="task-planner-link-label-wrap"
+              x={midpoint.x - 54}
+              y={midpoint.y - 15}
+              width="108"
+              height="30"
+              transform={`rotate(${angle} ${midpoint.x} ${midpoint.y})`}
+            >
+              <button
+                className={`task-planner-link-label${link.label?.trim() ? "" : " empty"}`}
+                type="button"
+                title={link.label?.trim() ? link.label : "Edit connection label"}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onOpenLinkMenu(link, midpoint);
+                }}
+              >
+                {labelText}
+              </button>
+            </foreignObject>
+          </g>
         );
       })}
       {activeConnector && (

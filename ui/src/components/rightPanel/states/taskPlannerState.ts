@@ -27,6 +27,12 @@ type TaskPlannerState = {
   updateConnector: (position: NodePosition) => void;
   cancelConnector: () => void;
   addLink: (prerequisiteTaskId: string, taskId: string) => boolean;
+  deleteLink: (prerequisiteTaskId: string, taskId: string) => void;
+  updateLinkLabel: (
+    prerequisiteTaskId: string,
+    taskId: string,
+    label: string | null,
+  ) => void;
   clearTaskPrerequisites: (taskId: string) => void;
   clearFeedback: () => void;
 };
@@ -130,12 +136,30 @@ export const useTaskPlannerState = create<TaskPlannerState>((set, get) => ({
     }
 
     set({
-      links: [...links, { prerequisiteTaskId, taskId }],
+      links: [...links, { prerequisiteTaskId, taskId, label: null }],
       activeConnector: null,
       feedback: null,
     });
     return true;
   },
+  deleteLink: (prerequisiteTaskId, taskId) =>
+    set((state) => ({
+      activeConnector: null,
+      feedback: null,
+      links: state.links.filter(
+        (link) =>
+          link.prerequisiteTaskId !== prerequisiteTaskId || link.taskId !== taskId,
+      ),
+    })),
+  updateLinkLabel: (prerequisiteTaskId, taskId, label) =>
+    set((state) => ({
+      feedback: null,
+      links: state.links.map((link) =>
+        link.prerequisiteTaskId === prerequisiteTaskId && link.taskId === taskId
+          ? { ...link, label }
+          : link,
+      ),
+    })),
   clearTaskPrerequisites: (taskId) =>
     set((state) => ({
       activeConnector: null,

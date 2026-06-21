@@ -6,6 +6,7 @@ import {useTaskPrerequisites} from "@/src/hooks/useTaskPrerequisites.ts";
 import type {Task, TaskStatus} from "@/src/types/task.ts";
 import {AddTaskDialog} from "@/src/components/common/dialogs/AddTaskDialog.tsx";
 import {TaskPlannerCanvasContextMenu} from "./TaskPlannerCanvasContextMenu.tsx";
+import {TaskPlannerLinkContextMenu} from "./TaskPlannerLinkContextMenu.tsx";
 import {TaskPlannerLinks} from "./TaskPlannerLinks.tsx";
 import {TaskPlannerNode} from "./TaskPlannerNode.tsx";
 import {TaskPlannerNodeContextMenu} from "./TaskPlannerNodeContextMenu.tsx";
@@ -57,6 +58,15 @@ type PlannerContextMenu =
     position: NodePosition;
 }
     | {
+    kind: "link";
+    link: {
+        prerequisiteTaskId: string;
+        taskId: string;
+        label: string | null;
+    };
+    position: NodePosition;
+}
+    | {
     kind: "node";
     position: NodePosition;
     taskId: string;
@@ -78,6 +88,7 @@ export function TaskPlannerView({
     const [taskTitle, setTaskTitle] = useState("");
     const [taskDescription, setTaskDescription] = useState("");
     const [taskStatus, setTaskStatus] = useState<TaskStatus>("OPEN");
+    const [linkLabelDraft, setLinkLabelDraft] = useState("");
     const [zoom, setZoom] = useState(1);
     const {
         activeConnector,
@@ -98,7 +109,9 @@ export function TaskPlannerView({
     const {
         addPrerequisite,
         clearTaskPrerequisites,
+        deletePrerequisite,
         getPrerequisiteCount,
+        updatePrerequisiteLabel,
         visiblePrerequisiteLinks,
     } = useTaskPrerequisites({taskIds});
 
@@ -246,6 +259,7 @@ export function TaskPlannerView({
 
     function closeContextMenu() {
         setContextMenu(null);
+        setLinkLabelDraft("");
     }
 
     function handleContextMenu(event: MouseEvent<HTMLDivElement>) {
@@ -361,6 +375,19 @@ export function TaskPlannerView({
 
         event.stopPropagation();
         addPrerequisite(activeConnector.prerequisiteTaskId, taskId).catch(console.error);
+    }
+
+    function handleOpenLinkMenu(
+        link: { prerequisiteTaskId: string; taskId: string; label: string | null },
+        position: NodePosition,
+    ) {
+        clearFeedback();
+        setLinkLabelDraft(link.label ?? "");
+        setContextMenu({
+            kind: "link",
+            link,
+            position,
+        });
     }
 
     function handleUpdateTaskStatus(task: Task, status: TaskStatus) {
@@ -481,6 +508,34 @@ export function TaskPlannerView({
         );
     }
 
+    async function handleSaveLinkLabel() {
+        if (contextMenu?.kind !== "link") {
+            return;
+        }
+
+        const updatedLink = await updatePrerequisiteLabel(
+            contextMenu.link.prerequisiteTaskId,
+            contextMenu.link.taskId,
+            linkLabelDraft,
+        );
+
+        if (updatedLink) {
+            closeContextMenu();
+        }
+    }
+
+    async function handleDeleteLink() {
+        if (contextMenu?.kind !== "link") {
+            return;
+        }
+
+        await deletePrerequisite(
+            contextMenu.link.prerequisiteTaskId,
+            contextMenu.link.taskId,
+        );
+        closeContextMenu();
+    }
+
     function handleCanvasPointerDown(event: PointerEvent<HTMLDivElement>) {
         if (event.button !== 0) {
             return;
@@ -491,7 +546,7 @@ export function TaskPlannerView({
             target instanceof Element &&
             Boolean(
                 target.closest(
-                    ".task-planner-node, .task-planner-zoom-controls, .task-planner-context-menu",
+                    ".task-planner-node, .task-planner-zoom-controls, .task-planner-context-menu, .task-planner-link-label",
                 ),
             );
 
@@ -565,6 +620,7 @@ export function TaskPlannerView({
                             activeConnector={activeConnector}
                             canvasSize={canvasSize}
                             links={visiblePrerequisiteLinks}
+                            onOpenLinkMenu={handleOpenLinkMenu}
                             positions={positions}
                         />
 
@@ -614,6 +670,22 @@ export function TaskPlannerView({
                                 onOpenDetails={() => {
                                     onRequestTaskDetails(contextMenu.taskId);
                                     closeContextMenu();
+                                }}
+                            />
+                        )}
+
+                        {contextMenu?.kind === "link" && (
+                            <TaskPlannerLinkContextMenu
+                                labelDraft={linkLabelDraft}
+                                link={contextMenu.link}
+                                position={contextMenu.position}
+                                onClose={closeContextMenu}
+                                onDelete={() => {
+                                    handleDeleteLink().catch(console.error);
+                                }}
+                                onLabelDraftChange={setLinkLabelDraft}
+                                onSaveLabel={() => {
+                                    handleSaveLinkLabel().catch(console.error);
                                 }}
                             />
                         )}

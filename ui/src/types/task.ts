@@ -17,6 +17,7 @@ export type Task = {
 export type TaskPrerequisiteLink = {
     prerequisiteTaskId: string;
     taskId: string;
+    label: string | null;
 };
 
 export type TaskPlannerPosition = {

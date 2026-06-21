@@ -14,6 +14,10 @@ export function useTaskPrerequisites({
     const [error, setError] = useState<string | null>(null);
     const links = useTaskPlannerState((state) => state.links);
     const addLink = useTaskPlannerState((state) => state.addLink);
+    const deleteLink = useTaskPlannerState((state) => state.deleteLink);
+    const updateLinkLabelInState = useTaskPlannerState(
+        (state) => state.updateLinkLabel,
+    );
     const clearTaskPrerequisitesFromState = useTaskPlannerState(
         (state) => state.clearTaskPrerequisites,
     );
@@ -108,6 +112,66 @@ export function useTaskPrerequisites({
         [clearTaskPrerequisitesFromState],
     );
 
+    const deletePrerequisite = useCallback(
+        async (prerequisiteTaskId: string, taskId: string) => {
+            setError(null);
+
+            let didDelete: boolean;
+
+            try {
+                didDelete = await invoke<boolean>("delete_task_prerequisite", {
+                    prerequisiteTaskId,
+                    taskId,
+                });
+            } catch (e) {
+                const message = String(e);
+                setError(message);
+                throw e;
+            }
+
+            if (didDelete) {
+                deleteLink(prerequisiteTaskId, taskId);
+            }
+
+            return didDelete;
+        },
+        [deleteLink],
+    );
+
+    const updatePrerequisiteLabel = useCallback(
+        async (prerequisiteTaskId: string, taskId: string, label: string) => {
+            setError(null);
+
+            let updatedLink: TaskPrerequisiteLink | null;
+
+            try {
+                updatedLink = await invoke<TaskPrerequisiteLink | null>(
+                    "update_task_prerequisite_label",
+                    {
+                        prerequisiteTaskId,
+                        taskId,
+                        label,
+                    },
+                );
+            } catch (e) {
+                const message = String(e);
+                setError(message);
+                throw e;
+            }
+
+            if (updatedLink) {
+                updateLinkLabelInState(
+                    updatedLink.prerequisiteTaskId,
+                    updatedLink.taskId,
+                    updatedLink.label,
+                );
+            }
+
+            return updatedLink;
+        },
+        [updateLinkLabelInState],
+    );
+
     const getPrerequisiteCount = useCallback(
         (taskId: string) =>
             visiblePrerequisiteLinks.filter((link) => link.taskId === taskId).length,
@@ -126,6 +190,8 @@ export function useTaskPrerequisites({
         loadPrerequisites,
         addPrerequisite,
         clearTaskPrerequisites,
+        deletePrerequisite,
         getPrerequisiteCount,
+        updatePrerequisiteLabel,
     };
 }

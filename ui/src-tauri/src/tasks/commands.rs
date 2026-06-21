@@ -127,7 +127,7 @@ pub fn list_task_prerequisites(
     let mut statement = db
         .prepare(
             "
-            SELECT prerequisite_task_id, task_id
+            SELECT prerequisite_task_id, task_id, label
             FROM task_prerequisites
             ORDER BY prerequisite_task_id, task_id
             ",
@@ -188,6 +188,43 @@ pub fn add_task_prerequisite(
         .map_err(|error| error.to_string())?;
 
     Ok(inserted > 0)
+}
+
+#[tauri::command]
+pub fn update_task_prerequisite_label(
+    prerequisite_task_id: String,
+    task_id: String,
+    label: String,
+    container: State<ApplicationContainer>,
+) -> Result<Option<TaskPrerequisite>, String> {
+    let db = container.database();
+    let trimmed_label = label.trim();
+    let next_label = if trimmed_label.is_empty() {
+        None
+    } else {
+        Some(trimmed_label.to_string())
+    };
+
+    let updated = db
+        .execute(
+            "
+            UPDATE task_prerequisites
+            SET label = ?3
+            WHERE prerequisite_task_id = ?1 AND task_id = ?2
+            ",
+            params![&prerequisite_task_id, &task_id, &next_label],
+        )
+        .map_err(|error| error.to_string())?;
+
+    if updated == 0 {
+        return Ok(None);
+    }
+
+    Ok(Some(TaskPrerequisite::new(
+        prerequisite_task_id,
+        task_id,
+        next_label,
+    )))
 }
 
 #[tauri::command]
@@ -308,7 +345,7 @@ fn find_task(connection: &Connection, id: &str) -> rusqlite::Result<Option<Task>
 fn load_prerequisite_links(connection: &Connection) -> rusqlite::Result<Vec<TaskPrerequisite>> {
     let mut statement = connection.prepare(
         "
-        SELECT prerequisite_task_id, task_id
+        SELECT prerequisite_task_id, task_id, label
         FROM task_prerequisites
         ",
     )?;
@@ -330,7 +367,7 @@ fn row_to_task(row: &rusqlite::Row<'_>) -> rusqlite::Result<Task> {
 }
 
 fn row_to_task_prerequisite(row: &rusqlite::Row<'_>) -> rusqlite::Result<TaskPrerequisite> {
-    Ok(TaskPrerequisite::new(row.get(0)?, row.get(1)?))
+    Ok(TaskPrerequisite::new(row.get(0)?, row.get(1)?, row.get(2)?))
 }
 
 fn row_to_task_planner_position(row: &rusqlite::Row<'_>) -> rusqlite::Result<TaskPlannerPosition> {

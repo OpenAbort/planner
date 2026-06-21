@@ -37,6 +37,7 @@ fn initialize_schema(connection: &Connection) -> rusqlite::Result<()> {
         CREATE TABLE IF NOT EXISTS task_prerequisites (
             prerequisite_task_id TEXT NOT NULL,
             task_id TEXT NOT NULL,
+            label TEXT,
             PRIMARY KEY (prerequisite_task_id, task_id),
             FOREIGN KEY (prerequisite_task_id) REFERENCES tasks(id) ON DELETE CASCADE,
             FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
@@ -50,5 +51,21 @@ fn initialize_schema(connection: &Connection) -> rusqlite::Result<()> {
             FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
         );
         ",
-    )
+    )?;
+
+    let has_prerequisite_label = connection
+        .prepare("PRAGMA table_info(task_prerequisites)")?
+        .query_map([], |row| row.get::<_, String>(1))?
+        .collect::<Result<Vec<_>, _>>()?
+        .iter()
+        .any(|column_name| column_name == "label");
+
+    if !has_prerequisite_label {
+        connection.execute(
+            "ALTER TABLE task_prerequisites ADD COLUMN label TEXT",
+            [],
+        )?;
+    }
+
+    Ok(())
 }

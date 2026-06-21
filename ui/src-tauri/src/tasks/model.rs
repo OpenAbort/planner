@@ -25,6 +25,7 @@ pub struct TaskPrerequisite {
     pub prerequisite_task_id: String,
     #[serde(rename = "taskId")]
     pub task_id: String,
+    pub label: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -42,10 +43,11 @@ impl TaskPlannerPosition {
 }
 
 impl TaskPrerequisite {
-    pub fn new(prerequisite_task_id: String, task_id: String) -> Self {
+    pub fn new(prerequisite_task_id: String, task_id: String, label: Option<String>) -> Self {
         Self {
             prerequisite_task_id,
             task_id,
+            label,
         }
     }
 }
