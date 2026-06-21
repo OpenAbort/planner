@@ -60,8 +60,20 @@ body {
 
 button,
 input,
+select,
 textarea {
     font: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    border-color: #000000 !important;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.9) !important;
+    outline: none;
 }
 
 button {
@@ -301,8 +313,8 @@ h1 {
 
 .task-details-input:focus,
 .task-details-textarea:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    border-color: #000000;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.9);
 }
 
 .status-option-grid {
@@ -812,8 +824,8 @@ h1 {
 }
 
 .task-planner-link-label-field input:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    border-color: #000000;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.9);
 }
 
 .task-planner-link-menu-actions {

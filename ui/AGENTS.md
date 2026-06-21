@@ -39,6 +39,7 @@ Run `bun run build` after frontend changes. Run `cargo check` from `src-tauri` a
 ## UI Guidelines
 
 - The app is an operational planner, so favor dense, clear controls over decorative layout.
+- Inputs, textareas, and selects must use the global focus treatment: black border color with a thick black focus ring. Do not add local blue focus borders or rings.
 - Planner nodes should keep drag, connector, context menu, and inline edit interactions separate.
 - Interactions inside nodes must stop pointer propagation when they should not drag the node.
 - Use existing status helpers from `src/components/common/taskStatus.tsx`.
