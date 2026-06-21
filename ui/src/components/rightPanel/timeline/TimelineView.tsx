@@ -36,7 +36,7 @@ export function TimelineView({ tasks }: TimelineViewProps) {
         <span>{tasks.length - scheduledCount} unscheduled</span>
         {conflictCount > 0 && <span className="conflict">{conflictCount} conflicts</span>}
       </div>
-      <TimelineCanvas layout={layout} />
+      <TimelineCanvas layout={layout} tasks={tasks} prerequisiteLinks={visiblePrerequisiteLinks} />
     </div>
   );
 }

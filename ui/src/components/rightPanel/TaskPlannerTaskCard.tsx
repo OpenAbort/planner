@@ -1,13 +1,13 @@
-import { getTaskStatusOption } from "@/src/components/common/taskStatus.tsx";
-import type { Task } from "@/src/types/task.ts";
-import type { NodePosition, PlannerLink } from "./states/taskPlannerState.ts";
+import {getTaskStatusOption} from "@/src/components/common/taskStatus.tsx";
+import type {Task} from "@/src/types/task.ts";
+import type {NodePosition, PlannerLink} from "./states/taskPlannerState.ts";
 
 type TaskPlannerTaskCardProps = {
-    position: NodePosition;
+    position?: NodePosition;
     prerequisiteLinks: PlannerLink[];
     tasks: Task[];
     task: Task;
-    onClose: () => void;
+    onClose?: () => void;
 };
 
 export function TaskPlannerTaskCard({
@@ -28,8 +28,8 @@ export function TaskPlannerTaskCard({
         <section
             className="task-planner-task-card"
             style={{
-                left: position.x,
-                top: position.y,
+                left: position?.x,
+                top: position?.y,
             }}
             aria-label={`${task.title} summary`}
             onClick={(event) => event.stopPropagation()}
@@ -40,9 +40,11 @@ export function TaskPlannerTaskCard({
                     <p>Task</p>
                     <h2>{task.title}</h2>
                 </div>
-                <button type="button" aria-label="Close task summary" onClick={onClose}>
-                    x
-                </button>
+                {onClose && (
+                    <button type="button" aria-label="Close task summary" onClick={onClose}>
+                        x
+                    </button>
+                )}
             </div>
             <div className={`task-planner-task-card-status ${statusOption.badgeClassName}`}>
                 <StatusIcon className="size-3.5"/>

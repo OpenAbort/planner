@@ -1,12 +1,15 @@
 import { TimelineAxis } from "./TimelineAxis.tsx";
 import { TimelineTaskBar } from "./TimelineTaskBar.tsx";
+import type { Task, TaskPrerequisiteLink } from "@/src/types/task.ts";
 import type { TimelineLayout } from "./timelineLayout.ts";
 
 type TimelineCanvasProps = {
   layout: TimelineLayout;
+  tasks: Task[];
+  prerequisiteLinks: TaskPrerequisiteLink[];
 };
 
-export function TimelineCanvas({ layout }: TimelineCanvasProps) {
+export function TimelineCanvas({ layout, tasks, prerequisiteLinks }: TimelineCanvasProps) {
   return (
     <div className="timeline-canvas" role="img" aria-label="Task schedule timeline">
       <div
@@ -63,7 +66,12 @@ export function TimelineCanvas({ layout }: TimelineCanvasProps) {
           </>
         )}
         {layout.tasks.map((entry) => (
-          <TimelineTaskBar key={entry.task.id} entry={entry} />
+          <TimelineTaskBar
+            key={entry.task.id}
+            entry={entry}
+            tasks={tasks}
+            prerequisiteLinks={prerequisiteLinks}
+          />
         ))}
       </div>
     </div>

@@ -1143,8 +1143,8 @@ h1 {
     min-width: 0;
     align-items: center;
     gap: 7px;
-    overflow: hidden;
-    border: 1px solid #93c5fd;
+    overflow: visible;
+    border: 2px solid #93c5fd;
     border-radius: 8px;
     background: #eff6ff;
     color: #0f172a;
@@ -1154,9 +1154,33 @@ h1 {
     box-shadow: 0 7px 18px rgba(15, 23, 42, 0.09);
 }
 
+.timeline-task-bar:hover,
+.timeline-task-bar:focus-visible {
+    z-index: 8;
+    outline: none;
+}
+
+.timeline-task-bar.compact {
+    justify-content: center;
+    overflow: visible;
+    padding: 0;
+}
+
+.timeline-task-bar.compact::after {
+    position: absolute;
+    left: calc(100% + 3px);
+    width: 7px;
+    border-top: 2px solid #93c5fd;
+    content: "";
+}
+
 .timeline-task-bar.milestone {
     border-color: #a7f3d0;
     background: #ecfdf5;
+}
+
+.timeline-task-bar.compact.milestone::after {
+    border-color: #a7f3d0;
 }
 
 .timeline-task-bar.unscheduled {
@@ -1166,10 +1190,18 @@ h1 {
     color: #475569;
 }
 
+.timeline-task-bar.compact.unscheduled::after {
+    border-color: #cbd5e1;
+}
+
 .timeline-task-bar.conflict {
     border-color: #f97316;
     box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2),
     0 7px 18px rgba(15, 23, 42, 0.09);
+}
+
+.timeline-task-bar.compact.conflict::after {
+    border-color: #f97316;
 }
 
 .timeline-task-title {
@@ -1179,11 +1211,86 @@ h1 {
     white-space: nowrap;
 }
 
+.timeline-task-tooltip {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 9;
+    display: none;
+    width: max-content;
+    max-width: 320px;
+    color: #172033;
+    pointer-events: none;
+}
+
+.timeline-task-bar:hover .timeline-task-tooltip,
+.timeline-task-bar:focus-visible .timeline-task-tooltip {
+    display: grid;
+    gap: 8px;
+}
+
+.timeline-task-tooltip .task-planner-task-card {
+    position: static;
+}
+
+.timeline-task-tooltip-conflict {
+    width: 280px;
+    margin: 0;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    background: #fff7ed;
+    color: #c2410c;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.35;
+    padding: 8px 10px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+}
+
+.timeline-task-bar.compact .timeline-task-title {
+    position: absolute;
+    left: calc(100% + 10px);
+    max-width: 180px;
+    overflow: hidden;
+    border: 1px solid #dbe3ef;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #172033;
+    font-size: 11px;
+    line-height: 1;
+    padding: 7px 8px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-shadow: 0 7px 18px rgba(15, 23, 42, 0.1);
+    pointer-events: none;
+}
+
 .timeline-task-status-dot {
     width: 9px;
     height: 9px;
     flex: 0 0 auto;
+    border: 1px solid currentColor;
     border-radius: 999px;
+}
+
+.timeline-task-status-dot[data-status="OPEN"] {
+    background: #0284c7;
+    color: #0369a1;
+}
+
+.timeline-task-status-dot[data-status="IN PROGRESS"] {
+    background: #d97706;
+    color: #b45309;
+}
+
+.timeline-task-status-dot[data-status="IMPLEMENTED"] {
+    background: #059669;
+    color: #047857;
+}
+
+.timeline-task-status-dot[data-status="CLOSE"] {
+    background: #e11d48;
+    color: #be123c;
 }
 
 .timeline-conflict-icon {
