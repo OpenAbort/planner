@@ -1,6 +1,7 @@
 import {MouseEvent, PointerEvent, useEffect, useMemo, useRef, useState} from "react";
 import type {NodePosition} from "./states/taskPlannerState.ts";
 import {useTaskPlannerState} from "./states/taskPlannerState.ts";
+import {useTaskPlannerPositions} from "@/src/hooks/useTaskPlannerPositions.ts";
 import {useTaskPrerequisites} from "@/src/hooks/useTaskPrerequisites.ts";
 import type {Task} from "@/src/types/task.ts";
 import {TaskPlannerCanvasContextMenu} from "./TaskPlannerCanvasContextMenu.tsx";
@@ -40,13 +41,16 @@ export function TaskPlannerView({tasks}: TaskPlannerViewProps) {
         clearFeedback,
         feedback,
         moveNode,
-        nodePositions,
-        resetNodePositions,
         startConnector,
         updateConnector,
     } = useTaskPlannerState();
 
     const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
+    const {
+        nodePositions,
+        resetPlannerPositions,
+        saveNodePosition,
+    } = useTaskPlannerPositions({taskIds});
     const {
         addPrerequisite,
         clearTaskPrerequisites,
@@ -169,10 +173,21 @@ export function TaskPlannerView({tasks}: TaskPlannerViewProps) {
     }
 
     function handlePointerUp() {
+        const droppedNode = draggingNode
+            ? {
+                taskId: draggingNode.taskId,
+                position: positions[draggingNode.taskId],
+            }
+            : null;
+
         setDraggingNode(null);
 
         if (activeConnector) {
             cancelConnector();
+        }
+
+        if (droppedNode) {
+            void saveNodePosition(droppedNode.taskId, droppedNode.position);
         }
     }
 
@@ -243,7 +258,9 @@ export function TaskPlannerView({tasks}: TaskPlannerViewProps) {
                     position={contextMenu.position}
                     onCancelConnector={cancelConnector}
                     onClose={closeContextMenu}
-                    onResetLayout={resetNodePositions}
+                    onResetLayout={() => {
+                        void resetPlannerPositions();
+                    }}
                 />
             )}
 

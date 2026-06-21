@@ -1,5 +1,5 @@
 use crate::app::ApplicationContainer;
-use crate::tasks::model::{Task, TaskPrerequisite};
+use crate::tasks::model::{Task, TaskPlannerPosition, TaskPrerequisite};
 use nanoid::nanoid;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::collections::{HashMap, HashSet};
@@ -226,6 +226,71 @@ pub fn clear_task_prerequisites(
     Ok(deleted)
 }
 
+#[tauri::command]
+pub fn list_task_planner_positions(
+    container: State<ApplicationContainer>,
+) -> Result<Vec<TaskPlannerPosition>, String> {
+    let db = container.database();
+    let mut statement = db
+        .prepare(
+            "
+            SELECT task_id, x, y
+            FROM task_planner_positions
+            ORDER BY task_id
+            ",
+        )
+        .map_err(|error| error.to_string())?;
+
+    let positions = statement
+        .query_map([], row_to_task_planner_position)
+        .map_err(|error| error.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| error.to_string())?;
+
+    Ok(positions)
+}
+
+#[tauri::command]
+pub fn upsert_task_planner_position(
+    task_id: String,
+    x: f64,
+    y: f64,
+    container: State<ApplicationContainer>,
+) -> Result<TaskPlannerPosition, String> {
+    let db = container.database();
+
+    if find_task(&db, &task_id)
+        .map_err(|error| error.to_string())?
+        .is_none()
+    {
+        return Err("Task must exist before saving planner position.".to_string());
+    }
+
+    db.execute(
+        "
+        INSERT INTO task_planner_positions (task_id, x, y)
+        VALUES (?1, ?2, ?3)
+        ON CONFLICT(task_id) DO UPDATE SET x = excluded.x, y = excluded.y
+        ",
+        params![&task_id, x, y],
+    )
+    .map_err(|error| error.to_string())?;
+
+    Ok(TaskPlannerPosition::new(task_id, x, y))
+}
+
+#[tauri::command]
+pub fn reset_task_planner_positions(
+    container: State<ApplicationContainer>,
+) -> Result<usize, String> {
+    let db = container.database();
+    let deleted = db
+        .execute("DELETE FROM task_planner_positions", [])
+        .map_err(|error| error.to_string())?;
+
+    Ok(deleted)
+}
+
 fn find_task(connection: &Connection, id: &str) -> rusqlite::Result<Option<Task>> {
     connection
         .query_row(
@@ -266,6 +331,14 @@ fn row_to_task(row: &rusqlite::Row<'_>) -> rusqlite::Result<Task> {
 
 fn row_to_task_prerequisite(row: &rusqlite::Row<'_>) -> rusqlite::Result<TaskPrerequisite> {
     Ok(TaskPrerequisite::new(row.get(0)?, row.get(1)?))
+}
+
+fn row_to_task_planner_position(row: &rusqlite::Row<'_>) -> rusqlite::Result<TaskPlannerPosition> {
+    Ok(TaskPlannerPosition::new(
+        row.get(0)?,
+        row.get(1)?,
+        row.get(2)?,
+    ))
 }
 
 fn would_create_cycle(

@@ -27,6 +27,20 @@ pub struct TaskPrerequisite {
     pub task_id: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TaskPlannerPosition {
+    #[serde(rename = "taskId")]
+    pub task_id: String,
+    pub x: f64,
+    pub y: f64,
+}
+
+impl TaskPlannerPosition {
+    pub fn new(task_id: String, x: f64, y: f64) -> Self {
+        Self { task_id, x, y }
+    }
+}
+
 impl TaskPrerequisite {
     pub fn new(prerequisite_task_id: String, task_id: String) -> Self {
         Self {

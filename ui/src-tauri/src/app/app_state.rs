@@ -42,6 +42,13 @@ fn initialize_schema(connection: &Connection) -> rusqlite::Result<()> {
             FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
             CHECK (prerequisite_task_id <> task_id)
         );
+
+        CREATE TABLE IF NOT EXISTS task_planner_positions (
+            task_id TEXT PRIMARY KEY NOT NULL,
+            x REAL NOT NULL,
+            y REAL NOT NULL,
+            FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+        );
         ",
     )
 }

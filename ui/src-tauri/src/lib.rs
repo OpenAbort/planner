@@ -6,8 +6,9 @@ use app::ApplicationContainer;
 use tauri::Manager;
 use tasks::commands::{
     add_task, add_task_prerequisite, clear_task_prerequisites, delete_task,
-    delete_task_prerequisite, get_task, list_task_prerequisites, list_tasks, update_task,
-    update_task_status,
+    delete_task_prerequisite, get_task, list_task_planner_positions, list_task_prerequisites,
+    list_tasks, reset_task_planner_positions, update_task, update_task_status,
+    upsert_task_planner_position,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -32,7 +33,10 @@ pub fn run() {
             list_task_prerequisites,
             add_task_prerequisite,
             delete_task_prerequisite,
-            clear_task_prerequisites
+            clear_task_prerequisites,
+            list_task_planner_positions,
+            upsert_task_planner_position,
+            reset_task_planner_positions
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

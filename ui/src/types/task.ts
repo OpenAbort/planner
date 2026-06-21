@@ -18,3 +18,9 @@ export type TaskPrerequisiteLink = {
     prerequisiteTaskId: string;
     taskId: string;
 };
+
+export type TaskPlannerPosition = {
+    taskId: string;
+    x: number;
+    y: number;
+};
