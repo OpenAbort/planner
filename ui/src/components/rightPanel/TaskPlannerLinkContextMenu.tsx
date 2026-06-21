@@ -40,6 +40,7 @@ export function TaskPlannerLinkContextMenu({
             <label className="task-planner-link-label-field">
                 <span>Connection label</span>
                 <input
+                    className="black-focus"
                     value={labelDraft}
                     aria-label={`Label for connection from ${link.prerequisiteTaskId} to ${link.taskId}`}
                     autoFocus

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { cn } from "@/lib/utils.ts";
 import type { TaskStatus } from "../../../types/task.ts";
 import { taskStatusOptions } from "../taskStatus.tsx";
+import { DateAndTimePicker } from "@/src/components/common/DateAndTimePicker.tsx";
 
 type AddTaskDialogProps = {
   taskTitle: string;
@@ -47,7 +48,7 @@ export function AddTaskDialog({
       }}
     >
       <form
-        className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-4 shadow-xl"
+        className="w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-4 shadow-xl"
         aria-label="Add task"
         onSubmit={onSubmit}
       >
@@ -72,7 +73,7 @@ export function AddTaskDialog({
             Title
           </span>
           <input
-            className="min-h-9 w-full min-w-0 rounded-lg border border-[#ccd6e3] bg-white px-3 py-1.5 text-[#172033] outline-none focus:border-black focus:shadow-[0_0_0_2px_rgba(0,0,0,0.14)]"
+            className="black-focus min-h-9 w-full min-w-0 rounded-lg border border-[#ccd6e3] bg-white px-3 py-1.5 text-[#172033] outline-none"
             aria-label="New task title"
             autoFocus
             value={taskTitle}
@@ -86,7 +87,7 @@ export function AddTaskDialog({
             Description
           </span>
           <textarea
-            className="min-h-20 w-full min-w-0 resize-none rounded-lg border border-[#ccd6e3] bg-white px-3 py-2 text-[#172033] outline-none focus:border-black focus:shadow-[0_0_0_2px_rgba(0,0,0,0.14)]"
+            className="black-focus min-h-20 w-full min-w-0 resize-none rounded-lg border border-[#ccd6e3] bg-white px-3 py-2 text-[#172033] outline-none"
             aria-label="New task description"
             value={taskDescription}
             onChange={(event) => onTaskDescriptionChange(event.currentTarget.value)}
@@ -94,32 +95,19 @@ export function AddTaskDialog({
           />
         </label>
 
-        <div className="mb-3 grid grid-cols-2 gap-3">
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-slate-600">
-              Start
-            </span>
-            <input
-              className="min-h-9 w-full min-w-0 rounded-lg border border-[#ccd6e3] bg-white px-3 py-1.5 text-[#172033] outline-none focus:border-black focus:shadow-[0_0_0_2px_rgba(0,0,0,0.14)]"
-              aria-label="New task start date"
-              type="datetime-local"
-              value={taskStartDate}
-              onChange={(event) => onTaskStartDateChange(event.currentTarget.value)}
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-slate-600">
-              Due
-            </span>
-            <input
-              className="min-h-9 w-full min-w-0 rounded-lg border border-[#ccd6e3] bg-white px-3 py-1.5 text-[#172033] outline-none focus:border-black focus:shadow-[0_0_0_2px_rgba(0,0,0,0.14)]"
-              aria-label="New task due date"
-              type="datetime-local"
-              value={taskDueDate}
-              onChange={(event) => onTaskDueDateChange(event.currentTarget.value)}
-            />
-          </label>
+        <div className="task-date-picker-grid mb-3">
+          <DateAndTimePicker
+            id="new-task-start-date"
+            label="Start time"
+            value={taskStartDate}
+            onChange={onTaskStartDateChange}
+          />
+          <DateAndTimePicker
+            id="new-task-due-date"
+            label="Due time"
+            value={taskDueDate}
+            onChange={onTaskDueDateChange}
+          />
         </div>
 
         <fieldset className="mb-4 grid gap-2 border-0 p-0">

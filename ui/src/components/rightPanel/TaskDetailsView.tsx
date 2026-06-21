@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { taskStatusOptions } from "@/src/components/common/taskStatus.tsx";
 import type { Task, TaskStatus } from "@/src/types/task.ts";
 import { cn } from "@/lib/utils.ts";
+import { DateAndTimePicker } from "@/src/components/common/DateAndTimePicker.tsx";
 
 type TaskDetailsViewProps = {
   task: Task | null;
@@ -98,7 +99,7 @@ export function TaskDetailsView({ task, onUpdateTask }: TaskDetailsViewProps) {
       <label className="task-details-field">
         <span>Title</span>
         <input
-          className="task-details-input"
+          className="task-details-input black-focus"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
         />
@@ -107,38 +108,32 @@ export function TaskDetailsView({ task, onUpdateTask }: TaskDetailsViewProps) {
       <label className="task-details-field">
         <span>Description</span>
         <textarea
-          className="task-details-textarea"
+          className="task-details-textarea black-focus"
           value={description}
           onChange={(event) => setDescription(event.target.value)}
         />
       </label>
 
       <div className="task-details-date-grid">
-        <label className="task-details-field">
-          <span>Start</span>
-          <input
-            className="task-details-input"
-            type="datetime-local"
-            value={startDate}
-            onChange={(event) => {
-              setStartDate(event.target.value);
+        <DateAndTimePicker
+          id="task-details-start-date"
+          label="Start time"
+          value={startDate}
+          onChange={(value) => {
+              setStartDate(value);
               setError(null);
-            }}
-          />
-        </label>
+          }}
+        />
 
-        <label className="task-details-field">
-          <span>Due</span>
-          <input
-            className="task-details-input"
-            type="datetime-local"
-            value={dueDate}
-            onChange={(event) => {
-              setDueDate(event.target.value);
+        <DateAndTimePicker
+          id="task-details-due-date"
+          label="Due time"
+          value={dueDate}
+          onChange={(value) => {
+              setDueDate(value);
               setError(null);
-            }}
-          />
-        </label>
+          }}
+        />
       </div>
 
       <fieldset className="task-details-field">
