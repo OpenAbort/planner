@@ -13,7 +13,6 @@ export function TimelineAxis({ layout }: TimelineAxisProps) {
           key={`${tick.left}-${tick.label}`}
           style={{
             left: tick.left,
-            height: layout.height - 24,
           }}
         >
           <span>{tick.label}</span>

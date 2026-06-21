@@ -11,7 +11,7 @@ type TimelineTaskBarProps = {
   prerequisiteLinks: TaskPrerequisiteLink[];
 };
 
-export function TimelineTaskBar({ entry, tasks, prerequisiteLinks }: TimelineTaskBarProps) {
+export function TimelineTaskBar({entry, tasks, prerequisiteLinks}: TimelineTaskBarProps) {
   const statusOption = getTaskStatusOption(entry.task.status);
   const hasConflict = entry.conflictTitles.length > 0;
   const isCompact = entry.width < 96;
@@ -28,6 +28,7 @@ export function TimelineTaskBar({ entry, tasks, prerequisiteLinks }: TimelineTas
       style={{
         left: entry.left,
         top: entry.top,
+        bottom: entry.bottom,
         width: entry.width,
       }}
       tabIndex={0}
@@ -38,7 +39,7 @@ export function TimelineTaskBar({ entry, tasks, prerequisiteLinks }: TimelineTas
         data-status={entry.task.status}
       />
       <span className="timeline-task-title">{entry.task.title}</span>
-      {hasConflict && <AlertTriangle className="timeline-conflict-icon" aria-hidden="true" />}
+      {hasConflict && <AlertTriangle className="timeline-conflict-icon" aria-hidden="true"/>}
       <div className="timeline-task-tooltip" role="tooltip">
         {hasConflict && (
           <p className="timeline-task-tooltip-conflict">

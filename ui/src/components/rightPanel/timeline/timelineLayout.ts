@@ -3,7 +3,8 @@ import type { Task, TaskPrerequisiteLink } from "@/src/types/task.ts";
 export type TimelineTask = {
   task: Task;
   left: number;
-  top: number;
+  top?: number;
+  bottom?: number;
   width: number;
   isMilestone: boolean;
   isUnscheduled: boolean;
@@ -25,6 +26,7 @@ export type TimelineLayout = {
   nowLeft: number;
   scheduledHeight: number;
   unscheduledTop: number | null;
+  unscheduledBottom: number | null;
   riskOverlay: {
     left: number;
     width: number;
@@ -116,7 +118,7 @@ export function createTimelineLayout(
     timelineTasks.push({
       task,
       left: AXIS_LEFT,
-      top: (unscheduledTop ?? scheduledHeight) + index * ROW_HEIGHT,
+      bottom: (unscheduled.length - index - 1) * ROW_HEIGHT + 74,
       width: UNSCHEDULED_TASK_WIDTH,
       isMilestone: false,
       isUnscheduled: true,
@@ -143,6 +145,9 @@ export function createTimelineLayout(
     nowLeft,
     scheduledHeight,
     unscheduledTop,
+    unscheduledBottom: unscheduled.length > 0
+      ? unscheduled.length * ROW_HEIGHT + 72
+      : null,
     riskOverlay: activeTasks.length > 0
       ? {
           left: earliestActiveLeft,

@@ -46,20 +46,19 @@ export function TimelineCanvas({ layout, tasks, prerequisiteLinks }: TimelineCan
           className="timeline-now-line"
           style={{
             left: layout.nowLeft,
-            height: layout.height - 24,
           }}
         >
           <span>Now</span>
         </div>
-        {layout.unscheduledTop !== null && (
+        {layout.unscheduledBottom !== null && (
           <>
             <div
               className="timeline-unscheduled-rule"
-              style={{ top: layout.unscheduledTop - 24 }}
+              style={{ bottom: layout.unscheduledBottom }}
             />
             <div
               className="timeline-unscheduled-label"
-              style={{ top: layout.unscheduledTop - 28 }}
+              style={{ bottom: layout.unscheduledBottom + 4 }}
             >
               Unscheduled
             </div>

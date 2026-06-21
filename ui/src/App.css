@@ -1063,6 +1063,7 @@ h1 {
 .timeline-content {
     position: relative;
     min-width: 100%;
+    min-height: 100%;
 }
 
 .timeline-past-region,
@@ -1097,6 +1098,7 @@ h1 {
 .timeline-tick {
     position: absolute;
     top: 20px;
+    bottom: 24px;
     width: 1px;
     background: rgba(148, 163, 184, 0.36);
 }
@@ -1115,6 +1117,7 @@ h1 {
 .timeline-now-line {
     position: absolute;
     top: 20px;
+    bottom: 24px;
     z-index: 4;
     width: 2px;
     background: #0f172a;
