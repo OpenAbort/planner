@@ -2,6 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { getTaskStatusOption } from "@/src/components/common/taskStatus.tsx";
 import { TaskPlannerTaskCard } from "@/src/components/rightPanel/TaskPlannerTaskCard.tsx";
+import type { MouseEvent } from "react";
 import type { Task, TaskPrerequisiteLink } from "@/src/types/task.ts";
 import type { TimelineTask } from "./timelineLayout.ts";
 
@@ -9,9 +10,10 @@ type TimelineTaskBarProps = {
   entry: TimelineTask;
   tasks: Task[];
   prerequisiteLinks: TaskPrerequisiteLink[];
+  onTaskContextMenu: (event: MouseEvent<HTMLElement>, task: Task) => void;
 };
 
-export function TimelineTaskBar({entry, tasks, prerequisiteLinks}: TimelineTaskBarProps) {
+export function TimelineTaskBar({entry, tasks, prerequisiteLinks, onTaskContextMenu}: TimelineTaskBarProps) {
   const statusOption = getTaskStatusOption(entry.task.status);
   const hasConflict = entry.conflictTitles.length > 0;
   const isCompact = entry.width < 96;
@@ -33,6 +35,7 @@ export function TimelineTaskBar({entry, tasks, prerequisiteLinks}: TimelineTaskB
       }}
       tabIndex={0}
       aria-label={entry.task.title}
+      onContextMenu={(event) => onTaskContextMenu(event, entry.task)}
     >
       <span
         className={cn("timeline-task-status-dot", statusOption.badgeClassName)}

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Task } from "@/src/types/task.ts";
+import type { Task, TaskStatus } from "@/src/types/task.ts";
 import { useTaskPrerequisites } from "@/src/hooks/useTaskPrerequisites.ts";
 import { TimelineCanvas } from "./TimelineCanvas.tsx";
 import { createTimelineLayout } from "./timelineLayout.ts";
@@ -7,9 +7,17 @@ import { useTimelineNow } from "./useTimelineNow.ts";
 
 type TimelineViewProps = {
   tasks: Task[];
+  onUpdateTask: (task: {
+    id: string;
+    title: string;
+    description: string;
+    status: TaskStatus;
+    startDate: string | null;
+    dueDate: string | null;
+  }) => Promise<Task | null>;
 };
 
-export function TimelineView({ tasks }: TimelineViewProps) {
+export function TimelineView({ tasks, onUpdateTask }: TimelineViewProps) {
   const now = useTimelineNow();
   const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
   const { visiblePrerequisiteLinks } = useTaskPrerequisites({ taskIds });
@@ -36,7 +44,12 @@ export function TimelineView({ tasks }: TimelineViewProps) {
         <span>{tasks.length - scheduledCount} unscheduled</span>
         {conflictCount > 0 && <span className="conflict">{conflictCount} conflicts</span>}
       </div>
-      <TimelineCanvas layout={layout} tasks={tasks} prerequisiteLinks={visiblePrerequisiteLinks} />
+      <TimelineCanvas
+        layout={layout}
+        tasks={tasks}
+        prerequisiteLinks={visiblePrerequisiteLinks}
+        onUpdateTask={onUpdateTask}
+      />
     </div>
   );
 }

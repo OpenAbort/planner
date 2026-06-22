@@ -1,17 +1,73 @@
+import { useEffect, useState } from "react";
 import { TimelineAxis } from "./TimelineAxis.tsx";
+import { TimelineTaskContextMenu } from "./TimelineTaskContextMenu.tsx";
 import { TimelineTaskBar } from "./TimelineTaskBar.tsx";
-import type { Task, TaskPrerequisiteLink } from "@/src/types/task.ts";
+import type { MouseEvent } from "react";
+import type { Task, TaskPrerequisiteLink, TaskStatus } from "@/src/types/task.ts";
 import type { TimelineLayout } from "./timelineLayout.ts";
 
 type TimelineCanvasProps = {
   layout: TimelineLayout;
   tasks: Task[];
   prerequisiteLinks: TaskPrerequisiteLink[];
+  onUpdateTask: (task: {
+    id: string;
+    title: string;
+    description: string;
+    status: TaskStatus;
+    startDate: string | null;
+    dueDate: string | null;
+  }) => Promise<Task | null>;
 };
 
-export function TimelineCanvas({ layout, tasks, prerequisiteLinks }: TimelineCanvasProps) {
+type TimelineContextMenu = {
+  position: {
+    x: number;
+    y: number;
+  };
+  task: Task;
+};
+
+export function TimelineCanvas({ layout, tasks, prerequisiteLinks, onUpdateTask }: TimelineCanvasProps) {
+  const [contextMenu, setContextMenu] = useState<TimelineContextMenu | null>(null);
+
+  useEffect(() => {
+    if (!contextMenu) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setContextMenu(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [contextMenu]);
+
+  function handleTaskContextMenu(event: MouseEvent<HTMLElement>, task: Task) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const rect = event.currentTarget.offsetParent?.getBoundingClientRect();
+
+    setContextMenu({
+      position: {
+        x: event.clientX - (rect?.left ?? 0),
+        y: event.clientY - (rect?.top ?? 0),
+      },
+      task,
+    });
+  }
+
   return (
-    <div className="timeline-canvas" role="img" aria-label="Task schedule timeline">
+    <div
+      className="timeline-canvas"
+      role="img"
+      aria-label="Task schedule timeline"
+      onPointerDown={() => setContextMenu(null)}
+    >
       <div
         className="timeline-content"
         style={{
@@ -70,8 +126,16 @@ export function TimelineCanvas({ layout, tasks, prerequisiteLinks }: TimelineCan
             entry={entry}
             tasks={tasks}
             prerequisiteLinks={prerequisiteLinks}
+            onTaskContextMenu={handleTaskContextMenu}
           />
         ))}
+        {contextMenu && (
+          <TimelineTaskContextMenu
+            position={contextMenu.position}
+            task={contextMenu.task}
+            onUpdateTask={onUpdateTask}
+          />
+        )}
       </div>
     </div>
   );

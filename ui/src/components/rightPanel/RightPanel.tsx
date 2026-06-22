@@ -94,7 +94,7 @@ export function RightPanel({ tasks, onAddTask, onUpdateTask }: RightPanelProps) 
           }}
         />
       )}
-      {activeTab === "timeline" && <TimelineView tasks={tasks} />}
+      {activeTab === "timeline" && <TimelineView tasks={tasks} onUpdateTask={onUpdateTask} />}
     </section>
   );
 }
