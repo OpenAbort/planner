@@ -2646,6 +2646,42 @@
         <option name="homepage" value="https://agentcn.vercel.app" />
         <option name="urlTemplate" value="https://agentcn.vercel.app/r/{name}.json" />
       </RegistryConfigState>
+      <RegistryConfigState>
+        <option name="id" value="central-7ovr" />
+        <option name="name" value="7ovr" />
+        <option name="namespace" value="@7ovr" />
+        <option name="baseUrl" value="https://7ovr.com/r" />
+        <option name="stylePath" value="/{name}.json" />
+        <option name="type" value="community" />
+        <option name="enabled" value="false" />
+        <option name="description" value="Free, production-ready UI blocks for marketing pages and application dashboards, built on Base UI and installable with the shadcn CLI." />
+        <option name="homepage" value="https://7ovr.com" />
+        <option name="urlTemplate" value="https://7ovr.com/r/{name}.json" />
+      </RegistryConfigState>
+      <RegistryConfigState>
+        <option name="id" value="central-tetra-ui" />
+        <option name="name" value="Tetra-ui" />
+        <option name="namespace" value="@tetra-ui" />
+        <option name="baseUrl" value="https://tetra-ui.com/r" />
+        <option name="stylePath" value="/{name}.json" />
+        <option name="type" value="community" />
+        <option name="enabled" value="false" />
+        <option name="description" value="Delightful components for a clean, accessible and modern component library for React Native." />
+        <option name="homepage" value="https://tetra-ui.com" />
+        <option name="urlTemplate" value="https://tetra-ui.com/r/{name}.json" />
+      </RegistryConfigState>
+      <RegistryConfigState>
+        <option name="id" value="central-uiable" />
+        <option name="name" value="Uiable" />
+        <option name="namespace" value="@uiable" />
+        <option name="baseUrl" value="https://uiable.com/r" />
+        <option name="stylePath" value="/{name}.json" />
+        <option name="type" value="community" />
+        <option name="enabled" value="false" />
+        <option name="description" value="Free, open-source UI component library built with Next.js, React 19, Tailwind CSS v4, and shadcn/ui — beautifully designed components you can copy, customize, and make your own." />
+        <option name="homepage" value="https://uiable.com" />
+        <option name="urlTemplate" value="https://uiable.com/r/{name}.json" />
+      </RegistryConfigState>
     </registryConfigs>
   </component>
 </project>
