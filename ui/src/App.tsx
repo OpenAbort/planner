@@ -8,7 +8,10 @@ import useTasks from "@/src/hooks/useTasks.ts";
 import {useTaskSelectionState} from "@/src/states/taskSelectionState.ts";
 
 function App() {
-    const {tasks, addTask: at, deleteTask, updateTask} = useTasks({limit: 50, offset: 0});
+    const {tasks, addTask: addTaskToStore, deleteTask, updateTask} = useTasks({limit: 50, offset: 0});
+    // Local mirror of server tasks so drag-to-reorder can reflect instantly.
+    // NOTE: reorder is UI-only and is not persisted, so any refresh of `tasks`
+    // (add/update/delete) resets the manual order.
     const [onUITasks, setOnUITasks] = useState<Task[]>([]);
     const selectedTaskId = useTaskSelectionState((state) => state.selectedTaskId);
     const clearSelectedTask = useTaskSelectionState((state) => state.clearSelectedTask);
@@ -35,7 +38,7 @@ function App() {
         startDate: string | null = null,
         dueDate: string | null = null,
     ) {
-        return await at({title, description, status, startDate, dueDate});
+        return await addTaskToStore({title, description, status, startDate, dueDate});
     }
 
     async function removeTasks(taskIds: string[]) {

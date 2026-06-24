@@ -1,4 +1,4 @@
-import {FormEvent, MouseEvent, PointerEvent, useEffect, useMemo, useRef, useState} from "react";
+import {FormEvent, MouseEvent, useEffect, useMemo, useState} from "react";
 import type {NodePosition} from "./states/taskPlannerState.ts";
 import {useTaskPlannerState} from "./states/taskPlannerState.ts";
 import {useAppPreference} from "@/src/hooks/useAppPreference.ts";
@@ -14,13 +14,14 @@ import {TaskPlannerNode} from "./TaskPlannerNode.tsx";
 import {TaskPlannerNodeContextMenu} from "./TaskPlannerNodeContextMenu.tsx";
 import {TaskPlannerTaskCard} from "./TaskPlannerTaskCard.tsx";
 import {TaskPlannerZoomControls} from "./TaskPlannerZoomControls.tsx";
-import {getDefaultPosition, GRID_LEFT, GRID_TOP, NODE_HEIGHT, NODE_WIDTH,} from "./taskPlannerGeometry.ts";
+import {getDefaultPosition, NODE_HEIGHT, NODE_WIDTH,} from "./taskPlannerGeometry.ts";
+import {getAutoSortedPositions} from "./taskPlannerLayout.ts";
+import {useCanvasInteraction} from "./useCanvasInteraction.ts";
+import type {PlannerMode} from "./useCanvasInteraction.ts";
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 1.8;
 const ZOOM_STEP = 0.1;
-const AUTO_SORT_GRID_X = 360;
-const AUTO_SORT_GRID_Y = 190;
 const PLANNER_ZOOM_PREFERENCE_KEY = "planner.zoom";
 
 function clampZoom(nextZoom: number) {
@@ -34,32 +35,6 @@ function parsePlannerZoomPreference(value: string) {
         ? clampZoom(parsedValue)
         : null;
 }
-
-type PlannerMode = "view" | "edit" | "select";
-
-type DraggingNodes = {
-    taskIds: string[];
-    startPointer: NodePosition;
-    startPositions: Record<string, NodePosition>;
-};
-
-type PanningCanvas = {
-    pointerId: number;
-    startPointer: {
-        x: number;
-        y: number;
-    };
-    startScroll: {
-        left: number;
-        top: number;
-    };
-};
-
-type SelectingNodes = {
-    pointerId: number;
-    startPoint: NodePosition;
-    currentPoint: NodePosition;
-};
 
 type TaskPlannerViewProps = {
     tasks: Task[];
@@ -114,13 +89,6 @@ export function TaskPlannerView({
                                     onUpdateTask,
                                     onRequestTaskDetails,
                                 }: TaskPlannerViewProps) {
-    const canvasRef = useRef<HTMLDivElement | null>(null);
-    const graphViewportRef = useRef<HTMLDivElement | null>(null);
-    const didDragNodeRef = useRef(false);
-    const [draggingNodes, setDraggingNodes] = useState<DraggingNodes | null>(null);
-    const [panningCanvas, setPanningCanvas] = useState<PanningCanvas | null>(null);
-    const [selectingNodes, setSelectingNodes] = useState<SelectingNodes | null>(null);
-    const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
     const [contextMenu, setContextMenu] = useState<PlannerContextMenu | null>(null);
     const [pendingTaskPosition, setPendingTaskPosition] = useState<NodePosition | null>(null);
     const [taskTitle, setTaskTitle] = useState("");
@@ -195,6 +163,42 @@ export function TaskPlannerView({
         [canvasSize, zoom],
     );
 
+    const {
+        canvasRef,
+        graphViewportRef,
+        getCanvasPoint,
+        selectedNodeIds,
+        isPanning,
+        isSelecting,
+        selectionRect,
+        isNodeDragging,
+        resetInteractionState,
+        handleNodePointerDown,
+        handleNodeClick,
+        handlePointerMove,
+        handlePointerUp,
+        handleConnectorPointerDown,
+        handleConnectorTargetPointerUp,
+        handleCanvasPointerDown,
+    } = useCanvasInteraction({
+        tasks,
+        positions,
+        zoom,
+        plannerMode,
+        activeConnector,
+        isContextMenuOpen: contextMenu !== null,
+        moveNode,
+        saveNodePosition,
+        startConnector,
+        updateConnector,
+        cancelConnector,
+        addPrerequisite,
+        onCloseContextMenu: closeContextMenu,
+        onCloseTaskCard: () => setActiveTaskCard(null),
+        onClearFeedback: clearFeedback,
+        onShowTaskCard: showTaskCard,
+    });
+
     useEffect(() => {
         if (!contextMenu) {
             return;
@@ -268,37 +272,6 @@ export function TaskPlannerView({
         });
     }, [positions, selectedTaskId, zoom]);
 
-    useEffect(() => {
-        setSelectedNodeIds((currentSelectedNodeIds) => {
-            const existingTaskIds = new Set(tasks.map((task) => task.id));
-            const nextSelectedNodeIds = new Set(
-                [...currentSelectedNodeIds].filter((taskId) => existingTaskIds.has(taskId)),
-            );
-
-            return nextSelectedNodeIds.size === currentSelectedNodeIds.size
-                ? currentSelectedNodeIds
-                : nextSelectedNodeIds;
-        });
-    }, [tasks]);
-
-    function getCanvasPoint(event: PointerEvent): NodePosition {
-        const rect = graphViewportRef.current?.getBoundingClientRect();
-
-        return {
-            x: (event.clientX - (rect?.left ?? 0)) / zoom,
-            y: (event.clientY - (rect?.top ?? 0)) / zoom,
-        };
-    }
-
-    function getContextMenuPoint(event: MouseEvent<HTMLElement>): NodePosition {
-        const rect = graphViewportRef.current?.getBoundingClientRect();
-
-        return {
-            x: (event.clientX - (rect?.left ?? 0)) / zoom,
-            y: (event.clientY - (rect?.top ?? 0)) / zoom,
-        };
-    }
-
     function getUnscaledCanvasPoint(position: NodePosition): NodePosition {
         return {
             x: position.x * zoom,
@@ -314,15 +287,25 @@ export function TaskPlannerView({
         setPlannerMode(mode);
         closeContextMenu();
         setActiveTaskCard(null);
-
         cancelConnector();
-        setDraggingNodes(null);
-        setPanningCanvas(null);
-        setSelectingNodes(null);
+        resetInteractionState(mode !== "select");
+    }
 
-        if (mode !== "select") {
-            setSelectedNodeIds(new Set());
+    // Opens the floating task card next to the given node.
+    function showTaskCard(taskId: string) {
+        const position = positions[taskId];
+
+        if (!position) {
+            return;
         }
+
+        setActiveTaskCard({
+            taskId,
+            position: {
+                x: position.x + NODE_WIDTH + 18,
+                y: position.y,
+            },
+        });
     }
 
     function resetTaskForm() {
@@ -373,46 +356,6 @@ export function TaskPlannerView({
         setLinkLabelDraft("");
     }
 
-    function getSelectionRect(selection: SelectingNodes) {
-        const left = Math.min(selection.startPoint.x, selection.currentPoint.x);
-        const top = Math.min(selection.startPoint.y, selection.currentPoint.y);
-        const right = Math.max(selection.startPoint.x, selection.currentPoint.x);
-        const bottom = Math.max(selection.startPoint.y, selection.currentPoint.y);
-
-        return {
-            left,
-            top,
-            right,
-            bottom,
-            width: right - left,
-            height: bottom - top,
-        };
-    }
-
-    function getNodeIdsInSelection(selection: SelectingNodes) {
-        const rect = getSelectionRect(selection);
-
-        return tasks
-            .filter((task) => {
-                const position = positions[task.id];
-
-                if (!position) {
-                    return false;
-                }
-
-                const nodeRight = position.x + NODE_WIDTH;
-                const nodeBottom = position.y + NODE_HEIGHT;
-
-                return (
-                    nodeRight >= rect.left &&
-                    position.x <= rect.right &&
-                    nodeBottom >= rect.top &&
-                    position.y <= rect.bottom
-                );
-            })
-            .map((task) => task.id);
-    }
-
     function handleContextMenu(event: MouseEvent<HTMLDivElement>) {
         event.preventDefault();
 
@@ -424,7 +367,7 @@ export function TaskPlannerView({
         clearFeedback();
         setContextMenu({
             kind: "canvas",
-            position: getContextMenuPoint(event),
+            position: getCanvasPoint(event),
         });
     }
 
@@ -439,202 +382,9 @@ export function TaskPlannerView({
         clearFeedback();
         setContextMenu({
             kind: "node",
-            position: getContextMenuPoint(event),
+            position: getCanvasPoint(event),
             taskId,
         });
-    }
-
-    function handleNodePointerDown(event: PointerEvent, taskId: string) {
-        if (
-            (plannerMode !== "edit" && plannerMode !== "select") ||
-            event.button !== 0 ||
-            activeConnector
-        ) {
-            return;
-        }
-
-        closeContextMenu();
-        clearFeedback();
-        event.currentTarget.setPointerCapture(event.pointerId);
-        didDragNodeRef.current = false;
-        const draggedTaskIds = plannerMode === "select" && selectedNodeIds.has(taskId)
-            ? [...selectedNodeIds]
-            : [taskId];
-
-        if (plannerMode === "select" && !selectedNodeIds.has(taskId)) {
-            setSelectedNodeIds(new Set([taskId]));
-        }
-
-        setDraggingNodes({
-            taskIds: draggedTaskIds,
-            startPointer: getCanvasPoint(event),
-            startPositions: draggedTaskIds.reduce<Record<string, NodePosition>>(
-                (startPositions, draggedTaskId) => {
-                    startPositions[draggedTaskId] = positions[draggedTaskId];
-                    return startPositions;
-                },
-                {},
-            ),
-        });
-    }
-
-    function handleNodeClick(taskId: string) {
-        if (didDragNodeRef.current) {
-            didDragNodeRef.current = false;
-            return;
-        }
-
-        closeContextMenu();
-        clearFeedback();
-
-        if (plannerMode === "select") {
-            setSelectedNodeIds(new Set([taskId]));
-            return;
-        }
-
-        const position = positions[taskId];
-
-        if (!position) {
-            return;
-        }
-
-        setActiveTaskCard({
-            taskId,
-            position: {
-                x: position.x + NODE_WIDTH + 18,
-                y: position.y,
-            },
-        });
-    }
-
-    function handlePointerMove(event: PointerEvent) {
-        if (contextMenu) {
-            return;
-        }
-
-        if (panningCanvas) {
-            const canvas = canvasRef.current;
-
-            if (!canvas) {
-                return;
-            }
-
-            canvas.scrollLeft =
-                panningCanvas.startScroll.left -
-                (event.clientX - panningCanvas.startPointer.x);
-            canvas.scrollTop =
-                panningCanvas.startScroll.top -
-                (event.clientY - panningCanvas.startPointer.y);
-            return;
-        }
-
-        const point = getCanvasPoint(event);
-
-        if (draggingNodes) {
-            if (
-                Math.abs(point.x - draggingNodes.startPointer.x) > 3 ||
-                Math.abs(point.y - draggingNodes.startPointer.y) > 3
-            ) {
-                didDragNodeRef.current = true;
-            }
-
-            draggingNodes.taskIds.forEach((taskId) => {
-                const startPosition = draggingNodes.startPositions[taskId];
-
-                if (!startPosition) {
-                    return;
-                }
-
-                moveNode(taskId, {
-                    x: Math.max(12, startPosition.x + point.x - draggingNodes.startPointer.x),
-                    y: Math.max(12, startPosition.y + point.y - draggingNodes.startPointer.y),
-                });
-            });
-            return;
-        }
-
-        if (selectingNodes) {
-            setSelectingNodes({
-                ...selectingNodes,
-                currentPoint: point,
-            });
-            return;
-        }
-
-        if (activeConnector) {
-            updateConnector(point);
-        }
-    }
-
-    function handlePointerUp(event: PointerEvent) {
-        const pointerUpPoint = getCanvasPoint(event);
-        const droppedNodes = draggingNodes?.taskIds.map((taskId) => {
-            const startPosition = draggingNodes.startPositions[taskId];
-
-            return {
-                taskId,
-                position: startPosition
-                    ? {
-                        x: Math.max(
-                            12,
-                            startPosition.x + pointerUpPoint.x - draggingNodes.startPointer.x,
-                        ),
-                        y: Math.max(
-                            12,
-                            startPosition.y + pointerUpPoint.y - draggingNodes.startPointer.y,
-                        ),
-                    }
-                    : positions[taskId],
-            };
-        }) ?? [];
-        const completedSelection = selectingNodes;
-
-        if (
-            (panningCanvas?.pointerId === event.pointerId ||
-                completedSelection?.pointerId === event.pointerId) &&
-            event.currentTarget.hasPointerCapture(event.pointerId)
-        ) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-        }
-
-        setDraggingNodes(null);
-        setPanningCanvas(null);
-        setSelectingNodes(null);
-
-        if (activeConnector) {
-            cancelConnector();
-        }
-
-        if (completedSelection) {
-            setSelectedNodeIds(new Set(getNodeIdsInSelection(completedSelection)));
-        }
-
-        if (droppedNodes.length > 0) {
-            void Promise.all(
-                droppedNodes.map((node) => saveNodePosition(node.taskId, node.position)),
-            );
-        }
-    }
-
-    function handleConnectorPointerDown(event: PointerEvent, taskId: string) {
-        if (plannerMode !== "edit") {
-            return;
-        }
-
-        event.stopPropagation();
-        closeContextMenu();
-        clearFeedback();
-        const point = getCanvasPoint(event);
-        startConnector(taskId, point);
-    }
-
-    function handleConnectorTargetPointerUp(event: PointerEvent, taskId: string) {
-        if (plannerMode !== "edit" || !activeConnector) {
-            return;
-        }
-
-        event.stopPropagation();
-        addPrerequisite(activeConnector.prerequisiteTaskId, taskId).catch(console.error);
     }
 
     function handleOpenLinkMenu(
@@ -669,101 +419,6 @@ export function TaskPlannerView({
         }).catch(console.error);
     }
 
-    function getAutoSortedPositions(): Record<string, NodePosition> {
-        const taskOrder = new Map(tasks.map((task, index) => [task.id, index]));
-        const dependencyCount = new Map(tasks.map((task) => [task.id, 0]));
-        const dependentsByPrerequisite = new Map<string, string[]>();
-        const maxPrerequisiteLayer = new Map(tasks.map((task) => [task.id, 0]));
-
-        visiblePrerequisiteLinks.forEach((link) => {
-            if (!dependencyCount.has(link.prerequisiteTaskId) || !dependencyCount.has(link.taskId)) {
-                return;
-            }
-
-            dependencyCount.set(link.taskId, (dependencyCount.get(link.taskId) ?? 0) + 1);
-            dependentsByPrerequisite.set(link.prerequisiteTaskId, [
-                ...(dependentsByPrerequisite.get(link.prerequisiteTaskId) ?? []),
-                link.taskId,
-            ]);
-        });
-
-        const queue = tasks
-            .filter((task) => dependencyCount.get(task.id) === 0)
-            .map((task) => task.id);
-        const layerByTaskId = new Map<string, number>();
-
-        while (queue.length > 0) {
-            queue.sort((leftTaskId, rightTaskId) => {
-                const layerDelta =
-                    (maxPrerequisiteLayer.get(leftTaskId) ?? 0) -
-                    (maxPrerequisiteLayer.get(rightTaskId) ?? 0);
-
-                if (layerDelta !== 0) {
-                    return layerDelta;
-                }
-
-                return (taskOrder.get(leftTaskId) ?? 0) - (taskOrder.get(rightTaskId) ?? 0);
-            });
-
-            const taskId = queue.shift();
-
-            if (!taskId) {
-                continue;
-            }
-
-            const taskLayer = maxPrerequisiteLayer.get(taskId) ?? 0;
-            layerByTaskId.set(taskId, taskLayer);
-
-            for (const dependentTaskId of dependentsByPrerequisite.get(taskId) ?? []) {
-                maxPrerequisiteLayer.set(
-                    dependentTaskId,
-                    Math.max(maxPrerequisiteLayer.get(dependentTaskId) ?? 0, taskLayer + 1),
-                );
-                dependencyCount.set(
-                    dependentTaskId,
-                    Math.max(0, (dependencyCount.get(dependentTaskId) ?? 0) - 1),
-                );
-
-                if (dependencyCount.get(dependentTaskId) === 0) {
-                    queue.push(dependentTaskId);
-                }
-            }
-        }
-
-        tasks.forEach((task) => {
-            if (!layerByTaskId.has(task.id)) {
-                layerByTaskId.set(task.id, maxPrerequisiteLayer.get(task.id) ?? 0);
-            }
-        });
-
-        const taskIdsByLayer = new Map<number, string[]>();
-
-        tasks.forEach((task) => {
-            const layer = layerByTaskId.get(task.id) ?? 0;
-            taskIdsByLayer.set(layer, [...(taskIdsByLayer.get(layer) ?? []), task.id]);
-        });
-
-        const sortedPositions: Record<string, NodePosition> = {};
-
-        [...taskIdsByLayer.entries()]
-            .sort(([leftLayer], [rightLayer]) => leftLayer - rightLayer)
-            .forEach(([layer, layerTaskIds]) => {
-                layerTaskIds
-                    .sort(
-                        (leftTaskId, rightTaskId) =>
-                            (taskOrder.get(leftTaskId) ?? 0) - (taskOrder.get(rightTaskId) ?? 0),
-                    )
-                    .forEach((taskId, rowIndex) => {
-                        sortedPositions[taskId] = {
-                            x: GRID_LEFT + layer * AUTO_SORT_GRID_X,
-                            y: GRID_TOP + rowIndex * AUTO_SORT_GRID_Y,
-                        };
-                    });
-            });
-
-        return sortedPositions;
-    }
-
     async function handleAutoSortPlanner() {
         if (plannerMode !== "edit") {
             return;
@@ -772,7 +427,7 @@ export function TaskPlannerView({
         closeContextMenu();
         clearFeedback();
 
-        const nextPositions = getAutoSortedPositions();
+        const nextPositions = getAutoSortedPositions(tasks, visiblePrerequisiteLinks);
         await Promise.all(
             tasks.map((task) => saveNodePosition(task.id, nextPositions[task.id])),
         );
@@ -806,54 +461,6 @@ export function TaskPlannerView({
         closeContextMenu();
     }
 
-    function handleCanvasPointerDown(event: PointerEvent<HTMLDivElement>) {
-        if (event.button !== 0) {
-            return;
-        }
-
-        const target = event.target;
-        const startedOnInteractiveElement =
-            target instanceof Element &&
-            Boolean(
-                target.closest(
-                    ".task-planner-node, .task-planner-floating-controls, .task-planner-context-menu, .task-planner-link-label, .task-planner-task-card",
-                ),
-            );
-
-        closeContextMenu();
-        setActiveTaskCard(null);
-
-        if (startedOnInteractiveElement || activeConnector || draggingNodes) {
-            return;
-        }
-
-        clearFeedback();
-        event.currentTarget.setPointerCapture(event.pointerId);
-        const startPoint = getCanvasPoint(event);
-
-        if (plannerMode === "select") {
-            setSelectingNodes({
-                pointerId: event.pointerId,
-                startPoint,
-                currentPoint: startPoint,
-            });
-            setSelectedNodeIds(new Set());
-            return;
-        }
-
-        setPanningCanvas({
-            pointerId: event.pointerId,
-            startPointer: {
-                x: event.clientX,
-                y: event.clientY,
-            },
-            startScroll: {
-                left: event.currentTarget.scrollLeft,
-                top: event.currentTarget.scrollTop,
-            },
-        });
-    }
-
     if (tasks.length === 0) {
         return (
             <div className="right-panel-empty">
@@ -878,7 +485,7 @@ export function TaskPlannerView({
                 />
             </div>
             <div
-                className={`task-planner-canvas${panningCanvas ? " panning" : ""}${selectingNodes ? " selecting" : ""}`}
+                className={`task-planner-canvas${isPanning ? " panning" : ""}${isSelecting ? " selecting" : ""}`}
                 ref={canvasRef}
                 onContextMenu={handleContextMenu}
                 onPointerMove={handlePointerMove}
@@ -911,14 +518,14 @@ export function TaskPlannerView({
                             positions={positions}
                         />
 
-                        {selectingNodes && (
+                        {selectionRect && (
                             <div
                                 className="task-planner-selection-rect"
                                 style={{
-                                    left: getSelectionRect(selectingNodes).left,
-                                    top: getSelectionRect(selectingNodes).top,
-                                    width: getSelectionRect(selectingNodes).width,
-                                    height: getSelectionRect(selectingNodes).height,
+                                    left: selectionRect.left,
+                                    top: selectionRect.top,
+                                    width: selectionRect.width,
+                                    height: selectionRect.height,
                                 }}
                             />
                         )}
@@ -927,7 +534,7 @@ export function TaskPlannerView({
                             <TaskPlannerNode
                                 key={task.id}
                                 isEditMode={plannerMode === "edit"}
-                                isDragging={Boolean(draggingNodes?.taskIds.includes(task.id))}
+                                isDragging={isNodeDragging(task.id)}
                                 isSelected={selectedTaskId === task.id || selectedNodeIds.has(task.id)}
                                 position={positions[task.id]}
                                 task={task}

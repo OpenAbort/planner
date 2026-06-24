@@ -65,6 +65,9 @@ export function useTaskPrerequisites({
         async (prerequisiteTaskId: string, taskId: string) => {
             setError(null);
 
+            // Optimistically add the link, then roll it back if the backend
+            // rejects or fails to persist it so the store never diverges from
+            // the database.
             const didAdd = addLink(prerequisiteTaskId, taskId);
 
             if (!didAdd) {
@@ -79,18 +82,20 @@ export function useTaskPrerequisites({
                     taskId,
                 });
             } catch (e) {
+                deleteLink(prerequisiteTaskId, taskId);
                 const message = String(e);
                 setError(message);
                 throw e;
             }
 
             if (!didPersist) {
+                deleteLink(prerequisiteTaskId, taskId);
                 return false;
             }
 
             return true;
         },
-        [addLink],
+        [addLink, deleteLink],
     );
 
     const clearTaskPrerequisites = useCallback(
