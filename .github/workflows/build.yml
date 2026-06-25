@@ -1,0 +1,119 @@
+# Builds the Windows desktop app (.exe) on every push to a feature/** branch.
+#
+# This does NOT create a GitHub Release. To get the build:
+#   1. Open the GitHub repository
+#   2. Open the "Actions" tab
+#   3. Select the workflow run for your push
+#   4. Scroll down to the "Artifacts" section
+#   5. Download the ZIP (it contains the versioned .exe / installers)
+#
+# Artifacts are retained for 90 days by default.
+#
+# ---------------------------------------------------------------------------
+# OPTIONAL: code signing (removes the Windows SmartScreen "unknown publisher"
+# warning). Signing is skipped automatically unless you add these repository
+# secrets (Settings -> Secrets and variables -> Actions):
+#   WINDOWS_CERTIFICATE           = base64 of your code-signing .pfx file
+#   WINDOWS_CERTIFICATE_PASSWORD  = the .pfx password
+# To base64-encode the .pfx on Windows PowerShell:
+#   [Convert]::ToBase64String([IO.File]::ReadAllBytes("cert.pfx")) | Set-Clipboard
+# NOTE: a real CA-issued cert is required to clear SmartScreen; a self-signed
+# cert will sign the binary but Windows will still warn.
+# ---------------------------------------------------------------------------
+
+name: Build Windows app
+
+on:
+  push:
+    branches:
+      - "feat/**"
+      - "feature/**"
+  workflow_dispatch: {} # adds a manual "Run workflow" button in the Actions tab
+
+# If you push again to the same branch, cancel the older in-progress run.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        # The Tauri app lives in planner/ui; the repo root is planner/.
+        working-directory: ui
+
+    env:
+      # Empty when the secrets are not set -> signing steps are skipped.
+      WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # Caches the Rust build so subsequent runs are much faster.
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ui/src-tauri
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        run: bun install
+
+      # OPTIONAL — only runs when WINDOWS_CERTIFICATE secret is present.
+      # Imports the cert and points tauri.conf.json at its thumbprint so the
+      # bundled binaries/installers get Authenticode-signed during the build.
+      - name: Configure code signing
+        if: ${{ env.WINDOWS_CERTIFICATE != '' }}
+        shell: pwsh
+        run: |
+          $bytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
+          [IO.File]::WriteAllBytes("$PWD/cert.pfx", $bytes)
+          $securePwd = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath cert.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $securePwd
+          $confPath = "src-tauri/tauri.conf.json"
+          $conf = Get-Content $confPath -Raw | ConvertFrom-Json
+          if (-not $conf.bundle.PSObject.Properties['windows']) {
+            $conf.bundle | Add-Member -NotePropertyName windows -NotePropertyValue ([PSCustomObject]@{}) -Force
+          }
+          $conf.bundle.windows | Add-Member -NotePropertyName certificateThumbprint -NotePropertyValue $cert.Thumbprint -Force
+          $conf.bundle.windows | Add-Member -NotePropertyName digestAlgorithm -NotePropertyValue "sha256" -Force
+          $conf.bundle.windows | Add-Member -NotePropertyName timestampUrl -NotePropertyValue "http://timestamp.digicert.com" -Force
+          $conf | ConvertTo-Json -Depth 50 | Set-Content $confPath -Encoding utf8
+          Remove-Item cert.pfx -Force
+          Write-Host "Code signing configured (thumbprint $($cert.Thumbprint))."
+
+      # Runs `tauri build`, which first runs the frontend build
+      # (beforeBuildCommand: "bun run build") then compiles the Rust release
+      # and produces the bundles defined in tauri.conf.json (targets: "all").
+      - name: Build Tauri app
+        run: bun run tauri build
+
+      # Give the standalone exe a versioned name (the NSIS/MSI installers are
+      # already version-stamped) and expose the version for naming the artifact.
+      - name: Stage versioned artifacts
+        shell: pwsh
+        run: |
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $releaseDir = "src-tauri/target/release"
+          Copy-Item "$releaseDir/ui.exe" "$releaseDir/ui_${version}_x64.exe" -Force
+          "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Staged ui_${version}_x64.exe"
+
+      # Paths below are relative to the repository root (NOT the working-directory).
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-${{ env.APP_VERSION }}-windows-${{ github.sha }}
+          path: |
+            ui/src-tauri/target/release/ui_*_x64.exe
+            ui/src-tauri/target/release/bundle/nsis/*.exe
+            ui/src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: error
