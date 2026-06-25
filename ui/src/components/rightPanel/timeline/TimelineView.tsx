@@ -7,6 +7,7 @@ import { useTimelineNow } from "./useTimelineNow.ts";
 
 type TimelineViewProps = {
   tasks: Task[];
+  selectedTaskId: string | null;
   onUpdateTask: (task: {
     id: string;
     title: string;
@@ -17,7 +18,7 @@ type TimelineViewProps = {
   }) => Promise<Task | null>;
 };
 
-export function TimelineView({ tasks, onUpdateTask }: TimelineViewProps) {
+export function TimelineView({ tasks, selectedTaskId, onUpdateTask }: TimelineViewProps) {
   const now = useTimelineNow();
   const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
   const { visiblePrerequisiteLinks } = useTaskPrerequisites({ taskIds });
@@ -47,6 +48,7 @@ export function TimelineView({ tasks, onUpdateTask }: TimelineViewProps) {
       <TimelineCanvas
         layout={layout}
         tasks={tasks}
+        selectedTaskId={selectedTaskId}
         prerequisiteLinks={visiblePrerequisiteLinks}
         onUpdateTask={onUpdateTask}
       />

@@ -9,11 +9,12 @@ import type { TimelineTask } from "./timelineLayout.ts";
 type TimelineTaskBarProps = {
   entry: TimelineTask;
   tasks: Task[];
+  isSelected: boolean;
   prerequisiteLinks: TaskPrerequisiteLink[];
   onTaskContextMenu: (event: MouseEvent<HTMLElement>, task: Task) => void;
 };
 
-export function TimelineTaskBar({entry, tasks, prerequisiteLinks, onTaskContextMenu}: TimelineTaskBarProps) {
+export function TimelineTaskBar({entry, tasks, isSelected, prerequisiteLinks, onTaskContextMenu}: TimelineTaskBarProps) {
   const statusOption = getTaskStatusOption(entry.task.status);
   const hasConflict = entry.conflictTitles.length > 0;
   const isCompact = entry.width < 96;
@@ -26,7 +27,9 @@ export function TimelineTaskBar({entry, tasks, prerequisiteLinks, onTaskContextM
         entry.isUnscheduled && "unscheduled",
         isCompact && "compact",
         hasConflict && "conflict",
+        isSelected && "selected",
       )}
+      aria-current={isSelected || undefined}
       style={{
         left: entry.left,
         top: entry.top,

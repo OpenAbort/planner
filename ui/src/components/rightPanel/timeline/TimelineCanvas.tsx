@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TimelineAxis } from "./TimelineAxis.tsx";
 import { TimelineTaskContextMenu } from "./TimelineTaskContextMenu.tsx";
 import { TimelineTaskBar } from "./TimelineTaskBar.tsx";
@@ -6,9 +6,14 @@ import type { MouseEvent } from "react";
 import type { Task, TaskPrerequisiteLink, TaskStatus } from "@/src/types/task.ts";
 import type { TimelineLayout } from "./timelineLayout.ts";
 
+// Matches the rendered height of `.timeline-task-bar` in App.css.
+const TASK_BAR_HEIGHT = 30;
+const SCROLL_INTO_VIEW_PADDING = 32;
+
 type TimelineCanvasProps = {
   layout: TimelineLayout;
   tasks: Task[];
+  selectedTaskId: string | null;
   prerequisiteLinks: TaskPrerequisiteLink[];
   onUpdateTask: (task: {
     id: string;
@@ -28,8 +33,13 @@ type TimelineContextMenu = {
   task: Task;
 };
 
-export function TimelineCanvas({ layout, tasks, prerequisiteLinks, onUpdateTask }: TimelineCanvasProps) {
+export function TimelineCanvas({ layout, tasks, selectedTaskId, prerequisiteLinks, onUpdateTask }: TimelineCanvasProps) {
   const [contextMenu, setContextMenu] = useState<TimelineContextMenu | null>(null);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  // Latest layout, read inside the scroll effect without re-running it on every
+  // `now` tick (the layout recomputes periodically).
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
 
   useEffect(() => {
     if (!contextMenu) {
@@ -45,6 +55,51 @@ export function TimelineCanvas({ layout, tasks, prerequisiteLinks, onUpdateTask 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [contextMenu]);
+
+  // Bring the task selected in the left panel into view, mirroring the planner.
+  // Runs only when the selection changes (not on layout/now ticks) so it never
+  // yanks back a view the user has manually scrolled.
+  useEffect(() => {
+    if (!selectedTaskId) {
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    const entry = layoutRef.current.tasks.find((item) => item.task.id === selectedTaskId);
+
+    if (!canvas || !entry) {
+      return;
+    }
+
+    const barTop = entry.top ?? layoutRef.current.height - (entry.bottom ?? 0) - TASK_BAR_HEIGHT;
+    const barLeft = entry.left;
+    const barRight = barLeft + entry.width;
+    const barBottom = barTop + TASK_BAR_HEIGHT;
+    const viewLeft = canvas.scrollLeft;
+    const viewTop = canvas.scrollTop;
+    const viewRight = viewLeft + canvas.clientWidth;
+    const viewBottom = viewTop + canvas.clientHeight;
+    const isVisible =
+      barLeft >= viewLeft + SCROLL_INTO_VIEW_PADDING &&
+      barTop >= viewTop + SCROLL_INTO_VIEW_PADDING &&
+      barRight <= viewRight - SCROLL_INTO_VIEW_PADDING &&
+      barBottom <= viewBottom - SCROLL_INTO_VIEW_PADDING;
+
+    if (isVisible) {
+      return;
+    }
+
+    const nextLeft = barLeft + entry.width / 2 - canvas.clientWidth / 2;
+    const nextTop = barTop + TASK_BAR_HEIGHT / 2 - canvas.clientHeight / 2;
+
+    requestAnimationFrame(() => {
+      canvas.scrollTo({
+        left: Math.max(0, nextLeft),
+        top: Math.max(0, nextTop),
+        behavior: "smooth",
+      });
+    });
+  }, [selectedTaskId]);
 
   function handleTaskContextMenu(event: MouseEvent<HTMLElement>, task: Task) {
     event.preventDefault();
@@ -66,6 +121,7 @@ export function TimelineCanvas({ layout, tasks, prerequisiteLinks, onUpdateTask 
       className="timeline-canvas"
       role="img"
       aria-label="Task schedule timeline"
+      ref={canvasRef}
       onPointerDown={() => setContextMenu(null)}
     >
       <div
@@ -125,6 +181,7 @@ export function TimelineCanvas({ layout, tasks, prerequisiteLinks, onUpdateTask 
             key={entry.task.id}
             entry={entry}
             tasks={tasks}
+            isSelected={entry.task.id === selectedTaskId}
             prerequisiteLinks={prerequisiteLinks}
             onTaskContextMenu={handleTaskContextMenu}
           />

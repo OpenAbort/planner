@@ -1163,6 +1163,14 @@ h1 {
     outline: none;
 }
 
+.timeline-task-bar.selected {
+    z-index: 7;
+    border-color: #2563eb;
+    background: #dbeafe;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22),
+    0 10px 24px rgba(37, 99, 235, 0.2);
+}
+
 .timeline-task-bar.compact {
     justify-content: center;
     overflow: visible;
