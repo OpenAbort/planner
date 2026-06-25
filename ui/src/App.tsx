@@ -8,7 +8,7 @@ import useTasks from "@/src/hooks/useTasks.ts";
 import {useTaskSelectionState} from "@/src/states/taskSelectionState.ts";
 
 function App() {
-    const {tasks, addTask: addTaskToStore, deleteTask, updateTask} = useTasks({limit: 50, offset: 0});
+    const {tasks, addTask: addTaskToStore, deleteTask, updateTask, searchTasks} = useTasks({limit: 50, offset: 0});
     // Local mirror of server tasks so drag-to-reorder can reflect instantly.
     // NOTE: reorder is UI-only and is not persisted, so any refresh of `tasks`
     // (add/update/delete) resets the manual order.
@@ -69,6 +69,7 @@ function App() {
                     tasks={onUITasks}
                     remainingTasks={remainingTasks}
                     onAddTask={addTask}
+                    onSearchTasks={searchTasks}
                     onRemoveTasks={removeTasks}
                     onReorderTask={reorderTask}
                 />

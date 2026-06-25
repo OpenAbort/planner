@@ -86,6 +86,44 @@ pub fn list_tasks(
 }
 
 #[tauri::command]
+pub fn search_tasks(
+    query: String,
+    limit: usize,
+    offset: usize,
+    container: State<ApplicationContainer>,
+) -> Result<Vec<Task>, String> {
+    let db = container.database();
+    let mut statement = db
+        .prepare(
+            "
+            SELECT id, title, description, status, start_date, due_date
+            FROM tasks
+            WHERE title LIKE ?1 ESCAPE '\\'
+            ORDER BY created_at DESC, rowid DESC
+            LIMIT ?2 OFFSET ?3
+            ",
+        )
+        .map_err(|error| error.to_string())?;
+
+    let pattern = format!("%{}%", escape_like(&query));
+    let tasks = statement
+        .query_map(params![pattern, limit as i64, offset as i64], row_to_task)
+        .map_err(|error| error.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| error.to_string())?;
+
+    Ok(tasks)
+}
+
+// Escape LIKE wildcards so a literal % or _ in the query isn't treated as a pattern.
+fn escape_like(input: &str) -> String {
+    input
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
+}
+
+#[tauri::command]
 pub fn update_task_status(
     id: String,
     status: String,

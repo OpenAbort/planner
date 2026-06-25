@@ -1,7 +1,9 @@
 import {useMemo, useState} from "react";
+import {Search, X} from "lucide-react";
 import {Button} from "@/components/ui/button.tsx";
 import {TaskForm} from "./TaskForm.tsx";
 import {TaskList} from "./TaskList.tsx";
+import {useTaskSearch} from "./useTaskSearch.ts";
 import {DeleteConfirmDialog} from "../common/dialogs/DeleteConfirmDialog.tsx";
 import {TaskSelectionToolbar} from "./TaskSelectionToolbar.tsx";
 import type {Task, TaskStatus} from "../../types/task.ts";
@@ -19,6 +21,7 @@ type TaskPanelProps = {
         startDate: string | null,
         dueDate: string | null,
     ) => void | Promise<Task>;
+    onSearchTasks: (query: string) => Promise<Task[]>;
     onRemoveTasks: (taskIds: string[]) => void;
     onReorderTask: (sourceTaskId: string, targetTaskId: string) => void;
 };
@@ -27,10 +30,21 @@ export function TaskPanel({
                               tasks,
                               remainingTasks,
                               onAddTask,
+                              onSearchTasks,
                               onRemoveTasks,
                               onReorderTask,
                           }: TaskPanelProps) {
     const state = useLeftPanelState();
+    const {
+        query: searchQuery,
+        setQuery: setSearchQuery,
+        results: searchResults,
+        isLoading: isSearchLoading,
+        isSearching,
+    } = useTaskSearch(onSearchTasks, tasks);
+    const displayedTasks = isSearching ? searchResults : tasks;
+    const showSearchEmptyState =
+        isSearching && !isSearchLoading && displayedTasks.length === 0;
     const selectedTaskId = useTaskSelectionState((selectionState) => selectionState.selectedTaskId);
     const selectTask = useTaskSelectionState((selectionState) => selectionState.selectTask);
     const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
@@ -94,6 +108,28 @@ export function TaskPanel({
                 <span className="task-count">{remainingTasks} open</span>
             </header>
 
+            <div className="task-search">
+                <Search className="task-search-icon size-4" aria-hidden="true"/>
+                <input
+                    className="task-search-input black-focus"
+                    type="search"
+                    aria-label="Search tasks by title"
+                    placeholder="Search tasks..."
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.currentTarget.value)}
+                />
+                {searchQuery && (
+                    <button
+                        className="task-search-clear"
+                        type="button"
+                        aria-label="Clear search"
+                        onClick={() => setSearchQuery("")}
+                    >
+                        <X className="size-4"/>
+                    </button>
+                )}
+            </div>
+
             <div className="grid grid-cols-[1fr_auto] gap-2">
                 <TaskForm onAddTask={onAddTask}/>
                 {!state.isTaskItemSelecting && (
@@ -116,16 +152,21 @@ export function TaskPanel({
                 />
             )}
             <Separator/>
-            <TaskList
-                tasks={tasks}
-                isSelecting={state.isTaskItemSelecting}
-                activeTaskId={selectedTaskId}
-                selectedTaskIds={selectedTaskIds}
-                onRequestDeleteTask={(taskId) => setDeleteTaskIds([taskId])}
-                onReorderTask={onReorderTask}
-                onSelectTask={selectTask}
-                onToggleTaskSelection={toggleTaskSelection}
-            />
+            {showSearchEmptyState ? (
+                <p className="task-search-empty">No tasks match "{searchQuery.trim()}".</p>
+            ) : (
+                <TaskList
+                    tasks={displayedTasks}
+                    isSelecting={state.isTaskItemSelecting}
+                    isReorderEnabled={!isSearching}
+                    activeTaskId={selectedTaskId}
+                    selectedTaskIds={selectedTaskIds}
+                    onRequestDeleteTask={(taskId) => setDeleteTaskIds([taskId])}
+                    onReorderTask={onReorderTask}
+                    onSelectTask={selectTask}
+                    onToggleTaskSelection={toggleTaskSelection}
+                />
+            )}
             {deleteTaskIds && (
                 <DeleteConfirmDialog
                     count={deleteCount}

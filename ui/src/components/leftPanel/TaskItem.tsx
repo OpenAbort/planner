@@ -11,6 +11,7 @@ import {getTaskStatusOption} from "../common/taskStatus.tsx";
 type TaskItemProps = {
     task: Task;
     isSelecting: boolean;
+    isReorderEnabled?: boolean;
     isActive: boolean;
     isSelected: boolean;
     onRequestDeleteTask: (taskId: string) => void;
@@ -21,6 +22,7 @@ type TaskItemProps = {
 export function TaskItem({
                              task,
                              isSelecting,
+                             isReorderEnabled = true,
                              isActive,
                              isSelected,
                              onRequestDeleteTask,
@@ -37,7 +39,7 @@ export function TaskItem({
         setNodeRef,
         transform,
         transition,
-    } = useSortable({id: task.id});
+    } = useSortable({id: task.id, disabled: !isReorderEnabled});
 
     return (
         <Card
@@ -66,9 +68,15 @@ export function TaskItem({
             }}
         >
             <button
-                className="grid size-5 cursor-grab place-items-center rounded-md text-slate-300 hover:bg-slate-100 hover:text-slate-500 active:cursor-grabbing"
+                className={cn(
+                    "grid size-5 place-items-center rounded-md text-slate-300",
+                    isReorderEnabled
+                        ? "cursor-grab hover:bg-slate-100 hover:text-slate-500 active:cursor-grabbing"
+                        : "cursor-not-allowed opacity-40"
+                )}
                 type="button"
                 aria-label={`Drag ${task.title}`}
+                disabled={!isReorderEnabled}
                 ref={setActivatorNodeRef}
                 onClick={(event) => event.stopPropagation()}
                 {...attributes}

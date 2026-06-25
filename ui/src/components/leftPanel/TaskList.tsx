@@ -18,6 +18,7 @@ import type { Task } from "../../types/task.ts";
 type TaskListProps = {
   tasks: Task[];
   isSelecting: boolean;
+  isReorderEnabled?: boolean;
   activeTaskId: string | null;
   selectedTaskIds: Set<string>;
   onRequestDeleteTask: (taskId: string) => void;
@@ -29,6 +30,7 @@ type TaskListProps = {
 export function TaskList({
   tasks,
   isSelecting,
+  isReorderEnabled = true,
   activeTaskId,
   selectedTaskIds,
   onRequestDeleteTask,
@@ -50,7 +52,7 @@ export function TaskList({
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (!over || active.id === over.id) {
+    if (!isReorderEnabled || !over || active.id === over.id) {
       return;
     }
 
@@ -76,6 +78,7 @@ export function TaskList({
               key={task.id}
               task={task}
               isSelecting={isSelecting}
+              isReorderEnabled={isReorderEnabled}
               isActive={activeTaskId === task.id}
               isSelected={selectedTaskIds.has(task.id)}
               onRequestDeleteTask={onRequestDeleteTask}

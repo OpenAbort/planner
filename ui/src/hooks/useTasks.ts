@@ -50,6 +50,16 @@ export default function useTasks({limit, offset}: UseTasksParams) {
         }
     }, [limit, offset]);
 
+    const searchTasks = useCallback(
+        async (query: string, searchLimit = limit, searchOffset = 0) =>
+            invoke<Task[]>("search_tasks", {
+                query,
+                limit: searchLimit,
+                offset: searchOffset,
+            }),
+        [limit],
+    );
+
     const addTask = useCallback(async ({title, description, status, startDate = null, dueDate = null}: AddTaskParams) => {
         const createdTask = await invoke<Task>("add_task", {
             title,
@@ -123,6 +133,7 @@ export default function useTasks({limit, offset}: UseTasksParams) {
         loading,
         error,
         loadTasks,
+        searchTasks,
         addTask,
         updateTask,
         updateTaskStatus,
