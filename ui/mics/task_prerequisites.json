@@ -1,0 +1,32 @@
+[
+  {
+    "prerequisite_task_id": "seed-discovery",
+    "task_id": "seed-api-contract",
+    "label": "Discovery complete"
+  },
+  {
+    "prerequisite_task_id": "seed-api-contract",
+    "task_id": "seed-db-migration",
+    "label": "Contract ready"
+  },
+  {
+    "prerequisite_task_id": "seed-db-migration",
+    "task_id": "seed-ui-scheduler",
+    "label": "Intentional conflict"
+  },
+  {
+    "prerequisite_task_id": "seed-ui-scheduler",
+    "task_id": "seed-timeline-polish",
+    "label": "Forms wired"
+  },
+  {
+    "prerequisite_task_id": "seed-timeline-polish",
+    "task_id": "seed-qa",
+    "label": "Timeline ready"
+  },
+  {
+    "prerequisite_task_id": "seed-qa",
+    "task_id": "seed-release-milestone",
+    "label": "QA complete"
+  }
+]

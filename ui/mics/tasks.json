@@ -1,0 +1,92 @@
+[
+  {
+    "id": "seed-discovery",
+    "title": "Map scheduling workflow",
+    "description": "Interview the team, list key schedule states, and confirm what the timeline must communicate.",
+    "status": "IMPLEMENTED",
+    "created_at": 1782034221,
+    "start_date": "2026-06-20T09:00",
+    "due_date": "2026-06-20T12:00"
+  },
+  {
+    "id": "seed-api-contract",
+    "title": "Finalize task scheduling contract",
+    "description": "Define startDate/dueDate payloads, null handling, and validation responses shared by Rust and React.",
+    "status": "IMPLEMENTED",
+    "created_at": 1782034222,
+    "start_date": "2026-06-20T13:00",
+    "due_date": "2026-06-20T18:00"
+  },
+  {
+    "id": "seed-db-migration",
+    "title": "Migrate task schedule columns",
+    "description": "Ship nullable start and due date persistence while preserving existing task data.",
+    "status": "IN PROGRESS",
+    "created_at": 1782034223,
+    "start_date": "2026-06-21T09:00",
+    "due_date": "2026-06-21T12:00"
+  },
+  {
+    "id": "seed-ui-scheduler",
+    "title": "Wire scheduler fields into task forms",
+    "description": "Replace native date inputs with the shared picker and keep validation consistent in create and details views.",
+    "status": "IN PROGRESS",
+    "created_at": 1782034224,
+    "start_date": "2026-06-21T10:00",
+    "due_date": "2026-06-21T16:00"
+  },
+  {
+    "id": "seed-timeline-polish",
+    "title": "Polish timeline visual states",
+    "description": "Tune current-time line, risk band, milestone bars, and restrained conflict styling.",
+    "status": "OPEN",
+    "created_at": 1782034225,
+    "start_date": "2026-06-21T14:00",
+    "due_date": "2026-06-22T10:00"
+  },
+  {
+    "id": "seed-docs-milestone",
+    "title": "Send implementation notes",
+    "description": "Milestone-only task ending today so due-date-only rendering is visible.",
+    "status": "OPEN",
+    "created_at": 1782034226,
+    "start_date": null,
+    "due_date": "2026-06-21T18:00"
+  },
+  {
+    "id": "seed-qa",
+    "title": "Run scheduling QA pass",
+    "description": "Verify persistence, reload behavior, timeline placement, and prerequisite conflict messaging.",
+    "status": "OPEN",
+    "created_at": 1782034227,
+    "start_date": "2026-06-22T10:00",
+    "due_date": "2026-06-22T15:00"
+  },
+  {
+    "id": "seed-release-milestone",
+    "title": "Release candidate review",
+    "description": "Final go/no-go checkpoint after QA signoff.",
+    "status": "OPEN",
+    "created_at": 1782034228,
+    "start_date": null,
+    "due_date": "2026-06-22T17:00"
+  },
+  {
+    "id": "seed-backlog-import",
+    "title": "Import older backlog items",
+    "description": "Unscheduled follow-up work to demonstrate the timeline backlog area.",
+    "status": "OPEN",
+    "created_at": 1782034229,
+    "start_date": null,
+    "due_date": null
+  },
+  {
+    "id": "seed-accessibility",
+    "title": "Keyboard accessibility audit",
+    "description": "Unscheduled audit task for calendar, timeline, and planner interactions.",
+    "status": "OPEN",
+    "created_at": 1782034230,
+    "start_date": null,
+    "due_date": null
+  }
+]

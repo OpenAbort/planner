@@ -1,0 +1,52 @@
+[
+  {
+    "task_id": "seed-discovery",
+    "x": 40,
+    "y": 610
+  },
+  {
+    "task_id": "seed-api-contract",
+    "x": 400,
+    "y": 40
+  },
+  {
+    "task_id": "seed-db-migration",
+    "x": 760,
+    "y": 40
+  },
+  {
+    "task_id": "seed-ui-scheduler",
+    "x": 1120,
+    "y": 40
+  },
+  {
+    "task_id": "seed-timeline-polish",
+    "x": 1480,
+    "y": 40
+  },
+  {
+    "task_id": "seed-qa",
+    "x": 1840,
+    "y": 40
+  },
+  {
+    "task_id": "seed-release-milestone",
+    "x": 2200,
+    "y": 40
+  },
+  {
+    "task_id": "seed-docs-milestone",
+    "x": 40,
+    "y": 420
+  },
+  {
+    "task_id": "seed-backlog-import",
+    "x": 40,
+    "y": 230
+  },
+  {
+    "task_id": "seed-accessibility",
+    "x": 40,
+    "y": 40
+  }
+]
