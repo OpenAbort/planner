@@ -1,9 +1,11 @@
+use crate::kafka::{self, TaskSubmittedEvent};
 use rusqlite::Connection;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
 
 pub struct ApplicationContainer {
     database: Mutex<Connection>,
+    kafka_bootstrap_servers: Mutex<Option<String>>,
 }
 
 impl ApplicationContainer {
@@ -11,13 +13,43 @@ impl ApplicationContainer {
         let connection = Connection::open(database_path)?;
         initialize_schema(&connection)?;
 
+        let kafka_bootstrap_servers = connection
+            .query_row(
+                "SELECT value FROM app_preferences WHERE key = 'kafka.bootstrap_servers'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .ok();
+
         Ok(Self {
             database: Mutex::new(connection),
+            kafka_bootstrap_servers: Mutex::new(kafka_bootstrap_servers),
         })
     }
 
     pub fn database(&self) -> MutexGuard<'_, Connection> {
         self.database.lock().unwrap()
+    }
+
+    pub fn update_kafka_servers(&self, bootstrap_servers: &str) {
+        *self.kafka_bootstrap_servers.lock().unwrap() = Some(bootstrap_servers.to_string());
+    }
+
+    /// Spawns a Tokio task to publish the event — never blocks the caller.
+    pub fn publish_task_submitted(&self, task_id: String, prompt: String) {
+        let servers = self.kafka_bootstrap_servers.lock().unwrap().clone();
+        let Some(servers) = servers else { return };
+
+        let event = TaskSubmittedEvent {
+            task_id,
+            user_id: "local-user".to_string(),
+            prompt,
+            submitted_at: chrono::Utc::now().to_rfc3339(),
+        };
+
+        tokio::spawn(async move {
+            kafka::publish_event(servers, event).await;
+        });
     }
 }
 

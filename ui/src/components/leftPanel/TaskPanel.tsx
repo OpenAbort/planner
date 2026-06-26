@@ -1,10 +1,11 @@
 import {useMemo, useState} from "react";
-import {Search, X} from "lucide-react";
+import {Search, Settings, X} from "lucide-react";
 import {Button} from "@/components/ui/button.tsx";
 import {TaskForm} from "./TaskForm.tsx";
 import {TaskList} from "./TaskList.tsx";
 import {useTaskSearch} from "./useTaskSearch.ts";
 import {DeleteConfirmDialog} from "../common/dialogs/DeleteConfirmDialog.tsx";
+import {KafkaSettingsDialog} from "../common/dialogs/KafkaSettingsDialog.tsx";
 import {TaskSelectionToolbar} from "./TaskSelectionToolbar.tsx";
 import type {Task, TaskStatus} from "../../types/task.ts";
 import {useLeftPanelState} from "@/src/components/leftPanel/states/leftPanelStates.ts";
@@ -51,6 +52,7 @@ export function TaskPanel({
         () => new Set()
     );
     const [deleteTaskIds, setDeleteTaskIds] = useState<string[] | null>(null);
+    const [isKafkaSettingsOpen, setIsKafkaSettingsOpen] = useState(false);
 
     const selectedCount = selectedTaskIds.size;
     const deleteCount = deleteTaskIds?.length ?? 0;
@@ -105,7 +107,19 @@ export function TaskPanel({
                     <p className="eyebrow">Planner</p>
                     <h1>Tasks</h1>
                 </div>
-                <span className="task-count">{remainingTasks} open</span>
+                <div className="flex items-center gap-2">
+                    <span className="task-count">{remainingTasks} open</span>
+                    <Button
+                        className="size-7 rounded-lg p-0 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Kafka settings"
+                        onClick={() => setIsKafkaSettingsOpen(true)}
+                    >
+                        <Settings className="size-4" />
+                    </Button>
+                </div>
             </header>
 
             <div className="task-search">
@@ -173,6 +187,9 @@ export function TaskPanel({
                     onCancel={() => setDeleteTaskIds(null)}
                     onConfirm={handleConfirmDelete}
                 />
+            )}
+            {isKafkaSettingsOpen && (
+                <KafkaSettingsDialog onClose={() => setIsKafkaSettingsOpen(false)} />
             )}
         </aside>
     );

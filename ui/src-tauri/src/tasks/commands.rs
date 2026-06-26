@@ -45,6 +45,13 @@ pub fn add_task(
     )
     .map_err(|error| error.to_string())?;
 
+    drop(db);
+
+    let prompt = format!("{} {}", task.title, task.description)
+        .trim()
+        .to_string();
+    container.publish_task_submitted(task.id.clone(), prompt);
+
     Ok(task)
 }
 
@@ -443,6 +450,34 @@ pub fn upsert_app_preference(
     .map_err(|error| error.to_string())?;
 
     Ok(preference)
+}
+
+#[tauri::command]
+pub fn update_kafka_config(
+    bootstrap_servers: String,
+    container: State<ApplicationContainer>,
+) -> Result<(), String> {
+    let servers = bootstrap_servers.trim().to_string();
+    if servers.is_empty() {
+        return Err("Bootstrap servers cannot be empty.".to_string());
+    }
+
+    let db = container.database();
+    db.execute(
+        "
+        INSERT INTO app_preferences (key, value)
+        VALUES ('kafka.bootstrap_servers', ?1)
+        ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value,
+                updated_at = unixepoch()
+        ",
+        params![&servers],
+    )
+    .map_err(|error| error.to_string())?;
+    drop(db);
+
+    container.update_kafka_servers(&servers);
+    Ok(())
 }
 
 fn find_task(connection: &Connection, id: &str) -> rusqlite::Result<Option<Task>> {

@@ -1,5 +1,6 @@
 mod app;
 mod core;
+mod kafka;
 mod tasks;
 
 use app::ApplicationContainer;
@@ -7,7 +8,7 @@ use tasks::commands::{
     add_task, add_task_prerequisite, clear_task_prerequisites, delete_task,
     delete_task_prerequisite, get_app_preference, get_task, list_task_planner_positions,
     list_task_prerequisites, list_tasks, reset_task_planner_positions, search_tasks, update_task,
-    update_task_prerequisite_label, update_task_status, upsert_app_preference,
+    update_task_prerequisite_label, update_task_status, update_kafka_config, upsert_app_preference,
     upsert_task_planner_position,
 };
 use tauri::Manager;
@@ -41,7 +42,8 @@ pub fn run() {
             upsert_task_planner_position,
             reset_task_planner_positions,
             get_app_preference,
-            upsert_app_preference
+            upsert_app_preference,
+            update_kafka_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
